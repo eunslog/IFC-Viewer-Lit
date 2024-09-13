@@ -9,6 +9,7 @@ import load from "./components/Toolbars/Sections/Import";
 import help from "./components/Panels/Help";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
+import clipEdges from "./components/Toolbars/Sections/ClipEdges";
 import { AppManager } from "./bim-components";
 
 BUI.Manager.init();
@@ -124,6 +125,7 @@ const toolbar = BUI.Component.create(() => {
       ${load(components)}
       ${camera(world)}
       ${selection(components, world)}
+      ${clipEdges(components, world)}
     </bim-toolbar>
   `;
 });
