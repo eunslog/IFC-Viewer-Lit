@@ -11,6 +11,8 @@ import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import clipEdges from "./components/Toolbars/Sections/ClipEdges";
 import { AppManager } from "./bim-components";
+import hiderPanel from "./components/Panels/Sections/Hider";
+import * as WEBIFC from "web-ifc";
 
 BUI.Manager.init();
 
@@ -96,6 +98,11 @@ fragments.onFragmentsLoaded.add(async (model) => {
   if (model.hasProperties) {
     await indexer.process(model);
     classifier.byEntity(model);
+    await classifier.bySpatialStructure(model, {
+      isolate: new Set([WEBIFC.IFCBUILDINGSTOREY]),
+    });
+
+    updateHiderPanel(); 
   }
 
   for (const fragment of model.items) {
@@ -108,6 +115,25 @@ fragments.onFragmentsLoaded.add(async (model) => {
     world.camera.fit(world.meshes, 0.8);
   }, 50);
 });
+
+function updateHiderPanel() {
+  const hiderTab = document.querySelector<BUI.Tab>('bim-tab[name="hider"]');
+
+  if (hiderTab) {
+    hiderTab.innerHTML = '';
+
+    const newHiderPanel = hiderPanel(components);
+
+    if (newHiderPanel !== null) {
+      hiderTab.append(newHiderPanel);
+    } else {
+      console.error('No elements to display.');
+    }
+  } else {
+    console.error('Not found hider tab.');
+  }
+}
+
 
 fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
   for (const fragmentID of fragmentIDs) {
@@ -141,6 +167,9 @@ const leftPanel = BUI.Component.create(() => {
       </bim-tab>
       <bim-tab name="help" label="Help" icon="material-symbols:help">
         ${help}
+      </bim-tab>
+      <bim-tab name="hider" label="Hider" icon="mdi:eye-off-outline">
+        ${hiderPanel(components)}
       </bim-tab>
     </bim-tabs> 
   `;
