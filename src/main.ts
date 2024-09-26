@@ -13,6 +13,8 @@ import clipEdges from "./components/Toolbars/Sections/ClipEdges";
 import { AppManager } from "./bim-components";
 import hiderPanel from "./components/Panels/Sections/Hider";
 import * as WEBIFC from "web-ifc";
+import * as OBCF from "@thatopen/components-front";
+
 
 BUI.Manager.init();
 
@@ -94,6 +96,66 @@ world.camera.controls.addEventListener("rest", () => {
   tilesLoader.culler.needsUpdate = true;
 });
 
+const marker = components.get(OBCF.Marker);
+marker.threshold = 10;
+
+const markerMap = new Map<string, { position: THREE.Vector3, count: number, labelMarkerId?: string }>();
+
+// place marker
+const placeMarkerOnSelected = () => {
+  const boundingBoxer = components.get(OBC.BoundingBoxer); 
+  boundingBoxer.reset();
+  
+  const selectedFragments = highlighter.selection.select;
+  if (Object.keys(selectedFragments).length === 0) {
+    console.log("No fragments selected.");
+    return;
+  }
+
+  const fragmentID = Object.keys(selectedFragments)[0];
+  const fragment = fragments.list.get(fragmentID);
+
+  if (!fragment) return;
+
+  const expressIDs = selectedFragments[fragmentID]; 
+
+  boundingBoxer.addMesh(fragment.mesh, expressIDs);
+
+  const boundingSphere = boundingBoxer.getSphere(); 
+  if (boundingSphere) {
+    const center = boundingSphere.center; 
+
+    const positionKey = `${center.x.toFixed(2)}_${center.y.toFixed(2)}_${center.z.toFixed(2)}`;
+
+    marker.create(world, "🚀", center);
+
+    if (markerMap.has(positionKey)) {
+      const markerData = markerMap.get(positionKey)!;
+      markerData.count++;
+
+      // delete previous marker
+      if (markerData.labelMarkerId) {
+        marker.delete(markerData.labelMarkerId);
+      }
+
+      // create new label
+      const label = `${markerData.count}`; 
+      const offsetPosition = center.clone();
+      offsetPosition.x += 0.1;
+
+      const newLabelMarkerId = marker.create(world, label, offsetPosition); 
+      markerData.labelMarkerId = newLabelMarkerId || "";
+
+    } else {
+      markerMap.set(positionKey, { position: center, count: 1 });
+    }
+  } else {
+    console.log("No valid bounding sphere for fragment", fragmentID);
+  }
+
+  boundingBoxer.reset(); 
+};
+
 fragments.onFragmentsLoaded.add(async (model) => {
   if (model.hasProperties) {
     await indexer.process(model);
@@ -152,6 +214,7 @@ const toolbar = BUI.Component.create(() => {
       ${camera(world)}
       ${selection(components, world)}
       ${clipEdges(components, world)}
+      <bim-button @click=${placeMarkerOnSelected} label="Place Marker" icon="mdi:map-marker" tooltip-title="Place Marker" tooltip-text="Places a marker on the selected fragment."></bim-button>
     </bim-toolbar>
   `;
 });
