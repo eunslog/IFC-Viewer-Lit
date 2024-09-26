@@ -12,7 +12,7 @@ export default (components: OBC.Components, world: OBC.World) => {
 
   const highlighter = components.get(OBF.Highlighter);
 
-  // 클리핑 스타일 정의
+  // clipping style
   const blueFill = new THREE.MeshBasicMaterial({ color: "lightblue", side: THREE.DoubleSide });
   const blueLine = new THREE.LineBasicMaterial({ color: "blue" });
   const blueOutline = new THREE.MeshBasicMaterial({
@@ -22,36 +22,33 @@ export default (components: OBC.Components, world: OBC.World) => {
     transparent: true,
   });
 
-  // IFC 모델에 클리핑 스타일 적용
   const applyClippingStyles = (fragments: OBC.FragmentsManager) => {
     fragments.list.forEach(fragment => {
       edges.styles.create("Blue lines", new Set([fragment.mesh]), world, blueLine, blueFill, blueOutline);
     });
   };
 
-  // IFC 파일이 로드되었을 때 클리핑 적용
+  // apply clipping
   const fragments = components.get(OBC.FragmentsManager);
   fragments.onFragmentsLoaded.add(model => {
     applyClippingStyles(fragments);
   });
 
-  // 선택한 도형의 경계에 맞게 클리핑 평면 생성
   const createClippingPlaneForSelection = () => {
-    const selection = highlighter.selection; // 선택된 도형 가져오기
-    const boundingBox = new THREE.Box3(); // 경계 상자
+    const selection = highlighter.selection; 
+    const boundingBox = new THREE.Box3();
 
     if (selection && Object.keys(selection).length > 0) {
-      // 경계 상자 확장
       Object.entries(selection).forEach(([fragmentID, fragmentSelection]) => {
         const fragment = fragments.list.get(fragmentID);
         if (fragment) {
           fragmentSelection.ids.forEach(() => {
-            boundingBox.expandByObject(fragment.mesh); // 선택된 도형의 경계 확장
+            boundingBox.expandByObject(fragment.mesh); 
           });
         }
       });
 
-      clipper.create(world); // 클리핑 평면 생성
+      clipper.create(world); 
       edges.update(true);
       
     } else {
@@ -59,7 +56,7 @@ export default (components: OBC.Components, world: OBC.World) => {
     }
   };
 
-  // 클리핑 플레인 생성 이벤트 (더블 클릭)
+  // create clipping plane
   const appContainer = document.getElementById("app");
   if (appContainer) {
     appContainer.ondblclick = () => {
@@ -71,7 +68,7 @@ export default (components: OBC.Components, world: OBC.World) => {
     console.error("Not found appContainer");
   }
 
-  // 클리핑 플레인 삭제 이벤트 (Delete 키)
+  // delete clipping plane
   window.onkeydown = (event) => {
     if (event.code === "Delete" || event.code === "Backspace") {
       if (clipper.enabled) {
@@ -80,7 +77,6 @@ export default (components: OBC.Components, world: OBC.World) => {
     }
   };
 
-  // UI 생성
   return BUI.Component.create<BUI.PanelSection>(() => {
     return BUI.html`
       <bim-toolbar-section label="Clipping Controls" icon="mdi:content-cut">
