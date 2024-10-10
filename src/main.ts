@@ -15,7 +15,6 @@ import hiderPanel from "./components/Panels/Sections/Hider";
 import * as WEBIFC from "web-ifc";
 import * as OBCF from "@thatopen/components-front";
 
-
 BUI.Manager.init();
 
 const components = new OBC.Components();
@@ -156,6 +155,9 @@ const placeMarkerOnSelected = () => {
   boundingBoxer.reset(); 
 };
 
+
+
+
 fragments.onFragmentsLoaded.add(async (model) => {
   if (model.hasProperties) {
     await indexer.process(model);
@@ -204,8 +206,73 @@ fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
   }
 });
 
+
 const projectInformationPanel = projectInformation(components);
 const elementDataPanel = elementData(components);
+
+const app = document.getElementById("app") as BUI.Grid;
+
+// EdgeMeasurement
+const edgeMeasurement = components.get(OBCF.EdgeMeasurement);
+edgeMeasurement.world = world;
+edgeMeasurement.enabled = false;
+
+// FaceMeasurement
+const faceMeasurement = components.get(OBCF.FaceMeasurement);
+faceMeasurement.world = world;
+faceMeasurement.enabled = false;
+
+// VolumeMeasurement
+const volumeMeasurement = components.get(OBCF.VolumeMeasurement);
+volumeMeasurement.world = world;
+volumeMeasurement.enabled = false;
+
+highlighter.events.select.onHighlight.add((event) => {
+  if (volumeMeasurement.enabled) {
+    const volume = volumeMeasurement.getVolumeFromFragments(event);
+  }
+});
+
+highlighter.events.select.onClear.add(() => {
+  if (volumeMeasurement.enabled) {
+    volumeMeasurement.clear();
+  }
+});
+
+
+viewport.ondblclick = () => {
+  if (edgeMeasurement.enabled) {
+    edgeMeasurement.create();
+  } else if (faceMeasurement.enabled) {
+    faceMeasurement.create();
+  } 
+};
+
+
+
+// 버튼 상태 업데이트 함수
+const updateButtons = () => {
+  const edgeButton = document.getElementById('edge-measurement-button') as BUI.Button;
+  const faceButton = document.getElementById('face-measurement-button') as BUI.Button;
+  const volumeButton = document.getElementById('volume-measurement-button') as BUI.Button;
+
+
+  if (edgeButton) {
+    edgeButton.label = edgeMeasurement.enabled ? "Disable Edge Measurement" : "Enable Edge Measurement";
+    edgeButton.active = edgeMeasurement.enabled;
+  }
+
+  if (faceButton) {
+    faceButton.label = faceMeasurement.enabled ? "Disable Face Measurement" : "Enable Face Measurement";
+    faceButton.active = faceMeasurement.enabled; 
+  }
+
+  if (volumeButton) {
+    volumeButton.label = volumeMeasurement.enabled ? "Disable Volume Measurement" : "Enable Volume Measurement";
+    volumeButton.active = volumeMeasurement.enabled;
+  }
+};
+
 
 const toolbar = BUI.Component.create(() => {
   return BUI.html`
@@ -214,10 +281,85 @@ const toolbar = BUI.Component.create(() => {
       ${camera(world)}
       ${selection(components, world)}
       ${clipEdges(components, world)}
-      <bim-button @click=${placeMarkerOnSelected} label="Place Marker" icon="mdi:map-marker" tooltip-title="Place Marker" tooltip-text="Places a marker on the selected fragment."></bim-button>
+
+      <bim-toolbar-section label="Measurement" icon="mdi:ruler">
+      <bim-button 
+        id="edge-measurement-button"
+        @click=${() => {
+          edgeMeasurement.enabled = !edgeMeasurement.enabled;
+          faceMeasurement.enabled = false; 
+          volumeMeasurement.enabled = false;
+          updateButtons(); 
+        }}
+        label="Enable Edge Measurement"
+        >
+      </bim-button>
+
+      <bim-button 
+        id="face-measurement-button"
+        @click=${() => {
+          faceMeasurement.enabled = !faceMeasurement.enabled;
+          edgeMeasurement.enabled = false; 
+          volumeMeasurement.enabled = false;
+          updateButtons();
+        }}
+        label="Enable Face Measurement"
+        >
+      </bim-button>
+
+      <bim-button 
+        id="volume-measurement-button"
+        @click=${() => {
+          volumeMeasurement.enabled = !volumeMeasurement.enabled;
+          edgeMeasurement.enabled = false;
+          faceMeasurement.enabled = false;
+          updateButtons(); 
+        }}
+        label="Enable Volume Measurement"
+        >
+      </bim-button>
+      </bim-toolbar-section> 
+
+      <bim-button @click=${placeMarkerOnSelected} 
+        label="Place Marker" 
+        icon="mdi:map-marker" 
+        tooltip-title="Place Marker" 
+        tooltip-text="Places a marker on the selected fragment.">
+      </bim-button>
     </bim-toolbar>
   `;
 });
+
+
+let savedEdgeMeasurements: number[][] = [];
+let savedFaceMeasurements: OBCF.SerializedAreaMeasure[] = [];
+
+window.addEventListener("keydown", (event) => {
+  if (event.code === "KeyO") {
+    if (edgeMeasurement.enabled) {
+      edgeMeasurement.delete();
+    } else if (faceMeasurement.enabled) {
+      faceMeasurement.delete();
+    } else {
+      console.log("No measurement tool is active");
+    }
+  } else if (event.code === "KeyS") {
+    if (edgeMeasurement.enabled) {
+      savedEdgeMeasurements = edgeMeasurement.get();
+      edgeMeasurement.deleteAll();
+    } else if (faceMeasurement.enabled) {
+      savedFaceMeasurements = faceMeasurement.get();
+      faceMeasurement.deleteAll();
+    }
+  } else if (event.code === "KeyL") {
+    if (edgeMeasurement.enabled && savedEdgeMeasurements.length > 0) {
+      edgeMeasurement.set(savedEdgeMeasurements);
+    } else if (faceMeasurement.enabled && savedFaceMeasurements.length > 0) {
+      faceMeasurement.set(savedFaceMeasurements);
+    }
+  }
+});
+
 
 const leftPanel = BUI.Component.create(() => {
   return BUI.html`
@@ -238,7 +380,8 @@ const leftPanel = BUI.Component.create(() => {
   `;
 });
 
-const app = document.getElementById("app") as BUI.Grid;
+
+
 app.layouts = {
   main: {
     template: `
