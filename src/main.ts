@@ -1,7 +1,11 @@
+/* eslint-disable no-alert */
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
+import * as CUI from "@thatopen/ui-obc";
+import * as FRAGS from "@thatopen/fragments";
+import Zip from "jszip";
 import projectInformation from "./components/Panels/ProjectInformation";
 import elementData from "./components/Panels/Selection";
 import settings from "./components/Panels/Settings";
@@ -72,8 +76,22 @@ const indexer = components.get(OBC.IfcRelationsIndexer);
 const classifier = components.get(OBC.Classifier);
 classifier.list.CustomSelections = {};
 
-const ifcLoader = components.get(OBC.IfcLoader);
-await ifcLoader.setup();
+
+// IfcStreamer
+const fragmentIfcLoader  = components.get(OBC.IfcLoader);
+await fragmentIfcLoader.setup();
+
+const excludedCats = [
+  WEBIFC.IFCTENDONANCHOR,
+  WEBIFC.IFCREINFORCINGBAR,
+  WEBIFC.IFCREINFORCINGELEMENT,
+];
+
+for (const cat of excludedCats) {
+  fragmentIfcLoader.settings.excludedCategories.add(cat);
+}
+
+fragmentIfcLoader.settings.webIfc.COORDINATE_TO_ORIGIN = true;
 
 const tilesLoader = components.get(OBF.IfcStreamer);
 tilesLoader.url = "../resources/tiles/";
@@ -81,6 +99,7 @@ tilesLoader.world = world;
 tilesLoader.culler.threshold = 10;
 tilesLoader.culler.maxHiddenTime = 1000;
 tilesLoader.culler.maxLostTime = 40000;
+// ---
 
 const highlighter = components.get(OBF.Highlighter);
 highlighter.setup({ world });
@@ -154,7 +173,6 @@ const placeMarkerOnSelected = () => {
 
   boundingBoxer.reset(); 
 };
-
 
 
 
@@ -249,8 +267,6 @@ viewport.ondblclick = () => {
 };
 
 
-
-// 버튼 상태 업데이트 함수
 const updateButtons = () => {
   const edgeButton = document.getElementById('edge-measurement-button') as BUI.Button;
   const faceButton = document.getElementById('face-measurement-button') as BUI.Button;
@@ -379,8 +395,6 @@ const leftPanel = BUI.Component.create(() => {
     </bim-tabs> 
   `;
 });
-
-
 
 app.layouts = {
   main: {
