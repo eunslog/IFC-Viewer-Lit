@@ -79,7 +79,7 @@ export default (components: OBC.Components, world: OBC.World) => {
 
   return BUI.Component.create<BUI.PanelSection>(() => {
     return BUI.html`
-      <bim-toolbar-section label="Clipping Controls" icon="mdi:content-cut">
+      <bim-panel-section label="Clipping Controls" icon="mdi:content-cut" collapsed>
         <bim-checkbox label="Clipper enabled" checked 
           @change="${({ target }: { target: BUI.Checkbox }) => {
             clipper.enabled = target.value;
@@ -121,7 +121,7 @@ export default (components: OBC.Components, world: OBC.World) => {
           }}">  
         </bim-button>
         
-      </bim-toolbar-section>
+      </bim-panel-section>
     `;
   });
 }

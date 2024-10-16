@@ -161,31 +161,30 @@ export default (components: OBC.Components) => {
 
   return BUI.Component.create<BUI.PanelSection>(() => {
     return BUI.html`
-      <bim-tollbar>
-        <bim-toolbar-section label="Import" icon="solar:import-bold">
-          ${loadBtn}
-          <bim-button @click=${loadFragments} label="Fragments" icon="fluent:puzzle-cube-piece-20-filled" tooltip-title="Load Fragments"
-            tooltip-text="Loads a pre-converted IFC from a Fragments file. Use this option if you want to avoid the conversion from IFC to Fragments."></bim-button>
-          <bim-button @click=${streamIfc} label="IFC Streamer" icon="mdi:file-import" tooltip-title="Load IFC Model"
-            tooltip-text="Loads an IFC file using the IfcLoader and converts it into fragments for the scene."></bim-button>
-          <!-- <bim-button @click=${loadTiles} label="Tiles" icon="fe:tiled" tooltip-title="Load BIM Tiles"
-          tooltip-text="Loads a pre-converted IFC from a Tiles file to stream the model. Perfect for big models."></bim-button> -->
-        </bim-toolbar-section>
-        <bim-toolbar-section label="Export" icon="solar:export-bold">
-        <bim-button label="Export fragments"
-            @click="${() => {
-              exportFragments();
-            }}">
-          </bim-button>  
-              
-          <bim-button label="Dispose fragments"
-            @click="${() => {
-              disposeFragments();
-            }}">
-          </bim-button>
-        </bim-toolbar-section>
-      </bim-tollbar>
+      <bim-toolbar>
+          <bim-panel-section label="Import" icon="solar:import-bold" collapsed style="flex: 1;">
+            ${loadBtn}
+            <bim-button @click=${loadFragments} label="Fragments" icon="fluent:puzzle-cube-piece-20-filled" tooltip-title="Load Fragments"
+              tooltip-text="Loads a pre-converted IFC from a Fragments file. Use this option if you want to avoid the conversion from IFC to Fragments."></bim-button>
+            <bim-button @click=${streamIfc} label="IFC Streamer" icon="mdi:file-import" tooltip-title="Load IFC Model"
+              tooltip-text="Loads an IFC file using the IfcLoader and converts it into fragments for the scene."></bim-button>
+            <!-- <bim-button @click=${loadTiles} label="Tiles" icon="fe:tiled" tooltip-title="Load BIM Tiles"
+            tooltip-text="Loads a pre-converted IFC from a Tiles file to stream the model. Perfect for big models."></bim-button> -->
+          </bim-panel-section>
 
+          <bim-panel-section label="Export" icon="solar:export-bold" collapsed style="flex: 1;">
+          <bim-button label="Export fragments"
+              @click="${() => {
+                exportFragments();
+              }}">
+            </bim-button>  
+            <bim-button label="Dispose fragments"
+              @click="${() => {
+                disposeFragments();
+              }}">
+            </bim-button>
+          </bim-panel-section>
+      </bim-toolbar>
     `;
   });
 };

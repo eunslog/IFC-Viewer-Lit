@@ -28,7 +28,7 @@ export default function hiderPanel(components: OBC.Components): BUI.PanelSection
 
   return BUI.Component.create<BUI.PanelSection>(() => {
     return BUI.html`
-      <bim-panel active label="Hider" class="options-menu">
+      <bim-panel>
         <bim-panel-section collapsed label="Controls">
           <bim-panel-section collapsed label="Floors" name="Floors">
             ${Object.keys(spatialStructures).map((name) => BUI.html`

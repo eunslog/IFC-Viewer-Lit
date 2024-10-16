@@ -3,9 +3,6 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
-import * as CUI from "@thatopen/ui-obc";
-import * as FRAGS from "@thatopen/fragments";
-import Zip from "jszip";
 import projectInformation from "./components/Panels/ProjectInformation";
 import elementData from "./components/Panels/Selection";
 import settings from "./components/Panels/Settings";
@@ -274,17 +271,17 @@ const updateButtons = () => {
 
 
   if (edgeButton) {
-    edgeButton.label = edgeMeasurement.enabled ? "Disable Edge Measurement" : "Enable Edge Measurement";
+    edgeButton.label = edgeMeasurement.enabled ? "Disable Edge" : "Enable Edge";
     edgeButton.active = edgeMeasurement.enabled;
   }
 
   if (faceButton) {
-    faceButton.label = faceMeasurement.enabled ? "Disable Face Measurement" : "Enable Face Measurement";
+    faceButton.label = faceMeasurement.enabled ? "Disable Face" : "Enable Face";
     faceButton.active = faceMeasurement.enabled; 
   }
 
   if (volumeButton) {
-    volumeButton.label = volumeMeasurement.enabled ? "Disable Volume Measurement" : "Enable Volume Measurement";
+    volumeButton.label = volumeMeasurement.enabled ? "Disable Volume" : "Enable Volume";
     volumeButton.active = volumeMeasurement.enabled;
   }
 };
@@ -298,7 +295,7 @@ const toolbar = BUI.Component.create(() => {
       ${selection(components, world)}
       ${clipEdges(components, world)}
 
-      <bim-toolbar-section label="Measurement" icon="mdi:ruler">
+      <bim-panel-section label="Measurement" icon="mdi:ruler" collapsed>
       <bim-button 
         id="edge-measurement-button"
         @click=${() => {
@@ -307,7 +304,7 @@ const toolbar = BUI.Component.create(() => {
           volumeMeasurement.enabled = false;
           updateButtons(); 
         }}
-        label="Enable Edge Measurement"
+        label="Enable Edge"
         >
       </bim-button>
 
@@ -319,7 +316,7 @@ const toolbar = BUI.Component.create(() => {
           volumeMeasurement.enabled = false;
           updateButtons();
         }}
-        label="Enable Face Measurement"
+        label="Enable Face"
         >
       </bim-button>
 
@@ -331,10 +328,10 @@ const toolbar = BUI.Component.create(() => {
           faceMeasurement.enabled = false;
           updateButtons(); 
         }}
-        label="Enable Volume Measurement"
+        label="Enable Volume"
         >
       </bim-button>
-      </bim-toolbar-section> 
+      </bim-panel-section> 
 
       <bim-button @click=${placeMarkerOnSelected} 
         label="Place Marker" 
