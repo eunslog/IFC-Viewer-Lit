@@ -3,7 +3,7 @@
   "compilerOptions": {
     "target": "ES2022",
     // "target": "ES2020", // original
-    "useDefineForClassFields": true,
+    "useDefineForClassFields": false, // 원래 true
     // "module": "CommonJS", // add
     "module": "ESNext",
     // "moduleResolution": "NodeNext", // add
