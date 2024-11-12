@@ -10,10 +10,9 @@ export class SearchBox extends LitElement {
       display: flex;
       align-items: center;
       column-gap: 10px;
-      width: 100%;
+      width: 40%;
     }
     input {
-      width: 100%;
       height: 40px;
       background-color: var(--background-100);
     }

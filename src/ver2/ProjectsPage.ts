@@ -227,9 +227,10 @@
 
 
 import { html, LitElement, css } from 'lit';
+import * as THREE from "three"
 import { customElement, property, state } from 'lit/decorators.js';
-import { ProjectsManager } from './classes/ProjectsManager';
-import { Project, IProject, ProjectStatus, UserRole } from './classes/Project';
+import { ProjectsManager } from '../components/classes/ProjectsManager';
+import { Project, IProject, ProjectStatus, UserRole } from '../components/classes/Project';
 import './ProjectCard';
 import './SearchBox';
 import type { AppRoot } from './index'; // AppRoot를 타입으로 가져옴
@@ -253,6 +254,9 @@ export class ProjectsPage extends LitElement {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
+    }
+    header .search-box {
+      align-items: center;
     }
     button,
     .action-icon {
@@ -366,6 +370,18 @@ export class ProjectsPage extends LitElement {
     navigateTo(`/project/${projectId}`);
   }
 
+  private onImportProjectsClicked() {
+    if (this.projectsManager) {
+      this.projectsManager.importFromJSON();
+    }
+  }
+
+  private onExportProjectsClicked() {
+    if (this.projectsManager) {
+      this.projectsManager.exportToJSON();
+    }
+  }
+
   render() {
     if (!this.projectsManager) {
       return html`<div>Loading Projects...</div>`;
@@ -379,7 +395,7 @@ export class ProjectsPage extends LitElement {
             <div class="input-list">
               <div class="form-field-container">
                 <label>
-                  <span>Name</span>
+                  <span class="material-icons-round">apartment</span>Name                  
                   <input name="name" type="text" placeholder="Project name" />
                 </label>
               </div>
@@ -395,7 +411,7 @@ export class ProjectsPage extends LitElement {
               </div>
               <div class="form-field-container">
                 <label>
-                  <span>Role</span>
+                <span class="material-icons-round">person</span>Role
                   <select name="userRole">
                     <option>Architect</option>
                     <option>Engineer</option>
@@ -429,9 +445,29 @@ export class ProjectsPage extends LitElement {
         </dialog>
         <header>
           <h2>Projects</h2>
-          <search-box .onChange=${(value: string) => this.onProjectSearch(value)}></search-box>          <button @click=${this.onNewProjectClicked} id="new-project-btn">
+          <search-box .onChange=${(value: string) => this.onProjectSearch(value)}></search-box>
+          <div style="display: flex; alignItems: center; columnGap: 15;">
+          <span
+            id="import-projects-btn"
+            class="material-icons-round action-icon"
+            @click=${this.onImportProjectsClicked}
+          >
+            file_upload
+          </span>
+          <span
+            id="export-projects-btn"
+            class="material-icons-round action-icon"
+            @click=${this.onExportProjectsClicked}
+          >
+            file_download
+          </span>
+          <button @click=${this.onNewProjectClicked} id="new-project-btn">
             <span class="material-icons-round">add</span>New Project
+            <span class="material-icons">
+              add
+            </span>
           </button>
+          </div>
         </header>
         ${this.projects.length > 0
           ? html`<div id="projects-list">

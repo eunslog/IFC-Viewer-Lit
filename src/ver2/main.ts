@@ -14,8 +14,8 @@ import { AppManager } from "../bim-components";
 import hiderPanel from "../components/Panels/Sections/Hider";
 import * as WEBIFC from "web-ifc";
 import * as OBCF from "@thatopen/components-front";
-import { IProject, ProjectStatus, UserRole } from "./classes/Project"
-import { ProjectsManager } from "./classes/ProjectsManager"
+import { IProject, ProjectStatus, UserRole } from "../components/classes/Project"
+import { ProjectsManager } from "../components/classes/ProjectsManager"
 
 function showModal(id: string) {
   const modal = document.getElementById(id)

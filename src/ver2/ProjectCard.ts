@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { Project } from './classes/Project';
+import { Project } from '../components/classes/Project';
 
 @customElement('project-card')
 export class ProjectCard extends LitElement {

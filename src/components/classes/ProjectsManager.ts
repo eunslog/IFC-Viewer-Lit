@@ -21,7 +21,7 @@ export class ProjectsManager {
     //더미데이터 생성
     this.newProject({
       name: "Default Project",
-      description: "This is just a default app project",
+      description: "This is just a default app project1",
       status: "pending",
       userRole: "architect",
       finishDate: new Date(),
@@ -29,7 +29,7 @@ export class ProjectsManager {
     })
     this.newProject({
       name: "Default Project2",
-      description: "This is just a default app project",
+      description: "This is just a default app project2",
       status: "active",
       userRole: "developer",
       finishDate: new Date(),

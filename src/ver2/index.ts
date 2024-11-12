@@ -68,7 +68,7 @@ import { html, LitElement, css } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
 import './ProjectsPage';
 import './IFCPage';
-import { ProjectsManager } from './classes/ProjectsManager';
+import { ProjectsManager } from '../components/classes/ProjectsManager';
 import { render as litRender, TemplateResult } from 'lit';
 
 export @customElement('app-root')

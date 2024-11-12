@@ -40,8 +40,9 @@ export default (components: OBC.Components) => {
     propsTable.expanded = !propsTable.expanded;
   };
 
-  return BUI.Component.create<BUI.PanelSection>(() => {
+  return BUI.Component.create<BUI.Panel>(() => {
     return BUI.html`
+    <bim-panel>
       <bim-panel-section name="selection" label="Selection Information" icon="solar:document-bold">
         <div style="display: flex; gap: 0.375rem;">
           <bim-text-input @input=${search} vertical placeholder="Search..." debounce="200"></bim-text-input>
@@ -50,6 +51,7 @@ export default (components: OBC.Components) => {
         </div>
         ${propsTable}
       </bim-panel-section>
+  </bim-panel>
     `;
   });
 };
