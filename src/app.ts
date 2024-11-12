@@ -3,7 +3,6 @@
 // import path from 'path';
 // import fs from 'fs';
 
-
 // const app: Application = express();
 // const port: number = 3000;
 
@@ -37,6 +36,18 @@
 //     company VARCHAR(255),
 //     department VARCHAR(255),
 //     team VARCHAR(255)
+//   )
+// `;
+
+// const projectSQL = `
+//   CREATE TABLE IF NOT EXISTS project (
+//     id INTEGER PRIMARY KEY AUTOINCREMENT,
+//     name VARCHAR(255),
+//     description VARCHAR(255),
+//     role VARCHAR(255),
+//     status VARCHAR(255),
+//     finishDate DATE,
+//     FOREIGN KEY (project_ifc) REFERENCES ifc(id)
 //   )
 // `;
 
@@ -148,6 +159,56 @@
 //   });
 // }
 
+// async function setupProjectDatabase() {
+//     return new Promise<void>((resolve, reject) => {
+    
+//       db.run(projectSQL, (err: Error | null) => {
+//         if (err) {
+//           console.error(err.message);
+//           reject(err);
+//         } else {
+//           console.log('Project Table created or already exists');
+//           resolve();
+//         }
+//       });
+//     });
+// }
+
+// async function insertProject() {
+//     return new Promise<void>((resolve, reject) => {
+//       const insertProjectSQL = `
+//         INSERT INTO project (name, description, role, status, finishDate, project_ifc)
+//         VALUES ("project", "description", "architect", "pending", datetime('now'), 1)
+//       `;
+    
+//       db.run(insertProjectSQL, (err: Error | null) => {
+//         if (err) {
+//           console.error(err.message);
+//           reject(err);
+//         } else {
+//           console.log('Project insert Row added to the table');
+//           resolve();
+//         }
+//       });
+//     });
+//   }
+
+//   async function selectProject() {
+//     return new Promise<void>((resolve, reject) => {
+//       const selectProjectSQL = `SELECT * FROM project WHERE id = ?`;
+//       db.get(selectProjectSQL, 1, (err: Error | null, row: any) => {
+//         if (err) {
+//           console.error(err.message);
+//           reject(err);
+//         } else {
+//           console.log('Retrieved row:', row);
+//           resolve();
+//         }
+//       });
+//     });
+//   }
+  
+
 
 // async function setupTodoDatabase() {
 //   return new Promise<void>((resolve, reject) => {
@@ -220,6 +281,9 @@
 //     // await setupTodoDatabase();
 //     // await insertTodo();
 //     // await selectTodo();
+//     await setupProjectDatabase();
+//     await insertProject();
+//     await selectProject();
 //   } catch (error) {
 //     console.error('An error occurred:', error);
 //   } finally {

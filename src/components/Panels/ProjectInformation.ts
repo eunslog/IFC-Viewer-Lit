@@ -42,50 +42,45 @@ export default (components: OBC.Components) => {
     }
   };
 
-
-// material-symbols:check-indeterminate-small-rounded
-  const showProjectDetails = (project: Project) => {
-    return BUI.html`
-        <div class="form-field-container">
-          <bim-label icon="material-symbols:play-arrow-rounded">
-            Name: ${project.name}
-          </bim-label> 
-        </div>
-        <div class="form-field-container">
-          <bim-label icon="material-symbols:play-arrow-rounded">
-            Description: ${project.description}
-          </bim-label>
-        </div>
-        <div class="form-field-container">
-          <bim-label icon="material-symbols:play-arrow-rounded">
-            Role: ${project.userRole}
-          </bim-label>
-        </div>
-        <div class="form-field-container">
-          <bim-label icon="material-symbols:play-arrow-rounded">
-            Status: ${project.status}
-          </bim-label>
-        </div>
-        <div class="form-field-container">
-          <bim-label icon="material-symbols:play-arrow-rounded">
-            Finish Date: ${project.finishDate.toISOString().split('T')[0]}
-          </bim-label>
-        </div>
-    `;
-  };
+  // const showProjectDetails = (project: Project) => {
+  //   return BUI.html`
+  //       <div class="form-field-container">
+  //         <bim-label icon="material-symbols:play-arrow-roundeded">
+  //           Name: ${project.name}
+  //         </bim-label> 
+  //       </div>
+  //       <div class="form-field-container">
+  //         <bim-label icon="material-symbols:play-arrow-rounded">
+  //           Description: ${project.description}
+  //         </bim-label>
+  //       </div>
+  //       <div class="form-field-container">
+  //         <bim-label icon="material-symbols:play-arrow-rounded">
+  //           Role: ${project.userRole}
+  //         </bim-label>
+  //       </div>
+  //       <div class="form-field-container">
+  //         <bim-label icon="material-symbols:play-arrow-rounded">
+  //           Status: ${project.status}
+  //         </bim-label>
+  //       </div>
+  //       <div class="form-field-container">
+  //         <bim-label icon="material-symbols:play-arrow-rounded">
+  //           Finish Date: ${project.finishDate.toISOString().split('T')[0]}
+  //         </bim-label>
+  //       </div>
+  //   `;
+  // };
 
 
   const ifcFilesList = projectsManager.list.map((project) => {
     return BUI.html`
-      <bim-panel-section
-        icon="mingcute:building-5-line"
-        label=${project.name}
-      >
-        ${showProjectDetails(project)}
-        <bim-button @click=${() => loadIFCModel(project.id)}
+      <div style="display: flex; gap: 0.375rem;">
+      <bim-label icon="mingcute:building-5-line">${project.name}</bim-label>
+        <bim-button style="flex: 0;" @click=${() => loadIFCModel(project.id)}
           icon="mage:box-3d-fill" label="Load">
-      </bim-button> 
-      </bim-panel-section>
+        </bim-button> 
+      </div>
     `;
   });
 
