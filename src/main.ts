@@ -296,43 +296,50 @@ const toolbar = BUI.Component.create(() => {
       ${clipEdges(components, world)}
 
       <bim-panel-section label="Measurement" icon="mdi:ruler" collapsed>
-      <bim-button 
-        id="edge-measurement-button"
-        @click=${() => {
-          edgeMeasurement.enabled = !edgeMeasurement.enabled;
-          faceMeasurement.enabled = false; 
-          volumeMeasurement.enabled = false;
-          updateButtons(); 
-        }}
-        label="Enable Edge"
-        >
-      </bim-button>
+        <bim-label vertical>
+          Use Keyboard
+        </bim-label>
+        <bim-label vertical>
+          O: Delete one
+          S: Delete all
+          L: Recover deleted Edges
+        </bim-label>
+        <bim-button 
+          id="edge-measurement-button"
+          @click=${() => {
+            edgeMeasurement.enabled = !edgeMeasurement.enabled;
+            faceMeasurement.enabled = false; 
+            volumeMeasurement.enabled = false;
+            updateButtons(); 
+          }}
+          label="Enable Edge"
+          >
+        </bim-button>
 
-      <bim-button 
-        id="face-measurement-button"
-        @click=${() => {
-          faceMeasurement.enabled = !faceMeasurement.enabled;
-          edgeMeasurement.enabled = false; 
-          volumeMeasurement.enabled = false;
-          updateButtons();
-        }}
-        label="Enable Face"
-        >
-      </bim-button>
+        <bim-button 
+          id="face-measurement-button"
+          @click=${() => {
+            faceMeasurement.enabled = !faceMeasurement.enabled;
+            edgeMeasurement.enabled = false; 
+            volumeMeasurement.enabled = false;
+            updateButtons();
+          }}
+          label="Enable Face"
+          >
+        </bim-button>
 
-      <bim-button 
-        id="volume-measurement-button"
-        @click=${() => {
-          volumeMeasurement.enabled = !volumeMeasurement.enabled;
-          edgeMeasurement.enabled = false;
-          faceMeasurement.enabled = false;
-          updateButtons(); 
-        }}
-        label="Enable Volume"
-        >
-      </bim-button>
+        <bim-button 
+          id="volume-measurement-button"
+          @click=${() => {
+            volumeMeasurement.enabled = !volumeMeasurement.enabled;
+            edgeMeasurement.enabled = false;
+            faceMeasurement.enabled = false;
+            updateButtons(); 
+          }}
+          label="Enable Volume"
+          >
+        </bim-button>
       </bim-panel-section> 
-
       <bim-button @click=${placeMarkerOnSelected} 
         label="Place Marker" 
         icon="mdi:map-marker" 
