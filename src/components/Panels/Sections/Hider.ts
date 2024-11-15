@@ -26,11 +26,23 @@ export default function hiderPanel(components: OBC.Components): BUI.PanelSection
     classes[name] = true;
   }
 
+  const predefinedTypes: Record<string, any> = {};
+  const predefinedTypeNames = Object.keys(classifier.list.predefinedTypes || {});
+  for (const name of predefinedTypeNames) {
+    predefinedTypes[name] = true;
+  }
+
+  const objectTypes: Record<string, any> = {};
+  const objectTypeNames = Object.keys(classifier.list.objectTypees || {});
+  for (const name of objectTypeNames) {
+    objectTypes[name] = true;
+  }
+
   return BUI.Component.create<BUI.PanelSection>(() => {
     return BUI.html`
       <bim-panel>
-        <bim-panel-section collapsed label="Controls">
-          <bim-panel-section collapsed label="Floors" name="Floors">
+        <bim-panel-section label="Controls">
+          <bim-panel-section label="Floors" name="Floors">
             ${Object.keys(spatialStructures).map((name) => BUI.html`
               <bim-checkbox checked label="${name}"
                 @change="${({ target }: { target: BUI.Checkbox }) => {
@@ -46,11 +58,31 @@ export default function hiderPanel(components: OBC.Components): BUI.PanelSection
               ></bim-checkbox>
             `)}
           </bim-panel-section>
-          <bim-panel-section collapsed label="Categories" name="Categories">
+          <bim-panel-section label="Classes" name="Classes">
             ${Object.keys(classes).map((name) => BUI.html`
               <bim-checkbox checked label="${name}"
                 @change="${({ target }: { target: BUI.Checkbox }) => {
                   const found = classifier.find({ entities: [name] });
+                  hider.set(target.checked, found);
+                }}"
+              ></bim-checkbox>
+            `)}
+          </bim-panel-section>
+          <bim-panel-section label="Predefined Types" name="PredefinedTypes">
+            ${Object.keys(predefinedTypes).map((name) => BUI.html`
+              <bim-checkbox checked label="${name}"
+                @change="${({ target }: { target: BUI.Checkbox }) => {
+                  const found = classifier.find({ predefinedTypes: [name] });
+                  hider.set(target.checked, found);
+                }}"
+              ></bim-checkbox>
+            `)}
+          </bim-panel-section>
+          <bim-panel-section label="Object Types" name="ObjectTypes">
+            ${Object.keys(objectTypes).map((name) => BUI.html`
+              <bim-checkbox checked label="${name}"
+                @change="${({ target }: { target: BUI.Checkbox }) => {
+                  const found = classifier.find({ objectTypes: [name] });
                   hider.set(target.checked, found);
                 }}"
               ></bim-checkbox>

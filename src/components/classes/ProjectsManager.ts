@@ -1,41 +1,75 @@
-import { IProject, Project } from "./Project"
+import { IProject, Project, ProjectStatus } from "./Project"
 
-//TODO 삭제예정
-//sample ifc file load
-//이후 데이터베이스에서 받아오는 방식으로 변경 필요
-const file = await fetch("src/resource/small.ifc");
-const buffer = await file.arrayBuffer();
-const project1_data = new Uint8Array(buffer);
+interface ProjectRow {
+  id: number;
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  finishDate: string;
+  project_ifc: number;
+}
 
-const file2 = await fetch("src/resource/HNS-CTL-MOD-EST-001.ifc")
-const buffer2 = await file2.arrayBuffer();
-const project2_data = new Uint8Array(buffer2)
+interface IfcRow {
+  id: number;
+  name: string;
+  content: Uint8Array;
+}
+
 
 export class ProjectsManager {
   list: Project[] = []
   onProjectCreated = (project: Project) => {}
   onProjectDeleted = () => {}
+  onProjectsUpdated = () => {}  // add
 
   constructor() {
-    //TODO 삭제예정
-    //더미데이터 생성
-    this.newProject({
-      name: "Default Project",
-      description: "This is just a default app project1",
-      status: "pending",
-      userRole: "architect",
-      finishDate: new Date(),
-      ifc_data: project1_data
-    })
-    this.newProject({
-      name: "Default Project2",
-      description: "This is just a default app project2",
-      status: "active",
-      userRole: "developer",
-      finishDate: new Date(),
-      ifc_data: project2_data
-    })
+    this.loadProjects();
   }
+
+  async loadProjects() {
+    try {
+      // 프로젝트 목록 가져오기
+      const projectResponse = await fetch('http://localhost:3000/api/projects');
+      if (!projectResponse.ok) {
+        throw new Error("Failed to fetch projects");
+      }
+      const projectRows: ProjectRow[] = await projectResponse.json();
+
+      for (const row of projectRows) {
+        // 각 프로젝트에 연결된 IFC 데이터 가져오기
+        const ifcResponse = await fetch(`http://localhost:3000/api/ifc/${row.project_ifc}`);
+        if (!ifcResponse.ok) {
+          console.warn(`No IFC data found for project ID ${row.id}`);
+          continue;
+        }
+        const ifcRow: IfcRow = await ifcResponse.json();
+
+        // 중복 확인
+        // const nameInUse = this.list.some((project) => project.name === row.name);
+        // if (nameInUse) {
+        //   console.warn(`Project with the name "${row.name}" already exists.`);
+        //   continue;
+        // }
+
+        const projectData: IProject = {
+          name: row.name,
+          description: row.description,
+          status: row.status,
+          userRole: "architect",
+          finishDate: new Date(row.finishDate),
+          ifc_data: new Uint8Array(ifcRow.content)
+        };
+        this.newProject(projectData);
+      }
+
+      console.log("Projects loaded from API successfully.");
+      this.onProjectsUpdated(); // add
+      
+    } catch (err) {
+      console.error("Error loading projects from API:", err);
+    }
+  }
+
 
   filterProjects(value: string) {
     console.log("this val: ", value);
@@ -46,16 +80,17 @@ export class ProjectsManager {
   }
 
   newProject(data: IProject) {
-    const projectNames = this.list.map((project) => {
-      return project.name
-    })
-    const nameInUse = projectNames.includes(data.name)
-    if (nameInUse) {
-      throw new Error(`A project with the name "${data.name}" already exists`)
-    }
-    const project = new Project(data)
-    this.list.push(project)
-    this.onProjectCreated(project)
+    // const projectNames = this.list.map((project) => {
+    //   return project.name
+    // })
+    // const nameInUse = projectNames.includes(data.name)
+    // if (nameInUse) {
+    //   throw new Error(`A project with the name "${data.name}" already exists`)
+    // }
+    const project = new Project(data);
+    this.list.push(project);
+    this.onProjectCreated(project);
+    this.onProjectsUpdated(); //add
     return project
   }
 
