@@ -1,32 +1,75 @@
-// import express, {Application, Response} from "express";
-// import cors from 'cors';
-// import path from 'path';
-// import fs from 'fs';
+import express, { Application, Request, Response } from "express";
+import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import Database from "better-sqlite3";
+import { fileURLToPath } from 'url';
 
-// const app: Application = express();
-// const port: number = 3000;
 
-// app.use(express.json());
-// app.use(cors());
+const app: Application = express();
+const port: number = 3000;
+const db = new Database('testDB.db');
 
-// app.get('/', (res: Response) => {
-//   res.send('Hello World')
-// });
+app.use(express.json());
+app.use(cors());
 
-// app.listen(port, () => {
-//   console.log(`Connected successfully on port ${port}`)
-// });
+app.listen(port, () => {
+  console.log(`Connected successfully on port ${port}`)
+});
 
-// const sqlite3 = require('sqlite3').verbose();
-// const db = new sqlite3.Database('testDB.db');
+app.get('/', (req: Request, res: Response) =>  {
+  res.send('Hello World')
+});
 
-// const ifcSQL = `
-//   CREATE TABLE IF NOT EXISTS ifc (
-//     id INTEGER PRIMARY KEY AUTOINCREMENT,
-//     name VARCHAR(255),
-//     content BLOB
-//   )
-// `;
+
+// 모든 프로젝트 가져오기
+app.get('/api/projects', (req: Request, res: Response) => {
+  try {
+    const selectProjectSQL = db.prepare("SELECT * FROM project");
+    const projects = selectProjectSQL.all();
+    console.log('proejcts:', projects);
+    res.json(projects);
+  } catch (err) {
+    console.error("Error fetching projects:", err);
+    res.status(500).json({ error: "Failed to fetch projects" });
+  }
+});
+  
+
+// 특정 IFC 가져오기
+app.get('/api/ifc/:id', (req: Request, res: Response) => {
+  try {
+    const ifcId = parseInt(req.params.id, 10);
+    const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
+    const ifc = selectIFCSQL.get(ifcId) as { id: number, name: string, content: Buffer };     if (ifc) {
+      // res.json(ifc);
+    if (ifc) {
+        // Buffer를 Base64 문자열로 변환
+      const base64Content = ifc.content.toString('base64');
+      const ifcResponse = {
+        id: ifc.id,
+        name: ifc.name,
+        content: base64Content,
+      };    
+      res.json(ifcResponse);  
+    } else {
+      res.status(404).json({ error: "IFC not found" });
+    }
+  } 
+}catch (err) {
+    console.error("Error fetching IFC:", err);
+    res.status(500).json({ error: "Failed to fetch IFC" });
+  }
+});
+
+
+const ifcSQL = `
+  CREATE TABLE IF NOT EXISTS ifc (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    content BLOB
+  )
+`;
 
 // const managerSQL = `
 //   CREATE TABLE IF NOT EXISTS manager (
@@ -39,17 +82,18 @@
 //   )
 // `;
 
-// const projectSQL = `
-//   CREATE TABLE IF NOT EXISTS project (
-//     id INTEGER PRIMARY KEY AUTOINCREMENT,
-//     name VARCHAR(255),
-//     description VARCHAR(255),
-//     role VARCHAR(255),
-//     status VARCHAR(255),
-//     finishDate DATE,
-//     FOREIGN KEY (project_ifc) REFERENCES ifc(id)
-//   )
-// `;
+//     name TEXT UNIQUE -?
+const projectSQL = `
+  CREATE TABLE IF NOT EXISTS project (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    description TEXT,
+    status TEXT,
+    finishDate TEXT,
+    project_ifc INTEGER,
+    FOREIGN KEY (project_ifc) REFERENCES ifc(id)
+  )
+`;
 
 // const todoSQL = `
 //   CREATE TABLE IF NOT EXISTS todo (
@@ -66,48 +110,56 @@
 //   )
 // `;
 
-// // 파일 경로 설정
-// const filePath = path.join(__dirname, '../../sampleIFC/small.ifc');
+// 파일 경로 
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const filePath = path.join(__dirname, '../../sampleIFC/small.ifc');
 
-// async function setupIfcDatabase() {
-//   return new Promise<void>((resolve, reject) => {
-  
-//     db.run(ifcSQL, (err: Error | null) => {
-//       if (err) {
-//         console.error(err.message);
-//         reject(err);
-//       } else {
-//         console.log('Ifc Table created or already exists');
-//         resolve();
-//       }
-//     });
-//   });
-// }
+function setupIfcDatabase() {
+    db.exec(ifcSQL);
+    console.log('IFC Table created or already exists.');
+}
 
-// async function insertIfcSQL() {
-//   return new Promise<void>((resolve, reject) => {
-//     // 파일을 읽어서 데이터베이스에 삽입
-//     fs.readFile(filePath, (err, data) => {
-//       if (err) {
-//         console.error('Error reading the file:', err);
-//         return;
-//       }
+function insertIfcSQL() {
+  try {
+      const fileContent = fs.readFileSync(filePath);
+      const insertIfcSQL = `
+          INSERT INTO ifc (name, content)
+          VALUES (?, ?)
+      `;
+      db.prepare(insertIfcSQL).run("small.ifc", fileContent);
+      console.log("IFC file inserted into the database.");
+      } catch (err) {
+      console.error('Error reading or inserting the file:', err);
+  }
+}
 
-//       const insertIfcSQL = `
-//         INSERT INTO ifc (name, content)
-//         VALUES (?, ?)
-//       `;
+function selectIFCs() {
+  try {
+    const selectIFCSQL = db.prepare("SELECT * FROM ifc");
+    const rows = selectIFCSQL.get();
+    if (rows) {
+      console.log('Retrieved rows:', rows);
+    } else {
+      console.log('No row found with the given ID.');
+    }
+  } catch (err) {
+    console.error('Error selecting IFCs:', err);
+  }
+}
 
-//       db.run(insertIfcSQL, ["first", data], (err: Error | null) => {
-//         if (err) {
-//           console.error(err.message);
-//         } else {
-//           console.log('Row added to the table');
-//         }
-//       })
-//     });
-//   });
-// }
+function selectIFC() {
+  try {
+    const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
+    const row = selectIFCSQL.get(1);
+    if (row) {
+      console.log('Retrieved row:', row);
+    } else {
+      console.log('No row found with the given ID.');
+    }
+  } catch (err) {
+    console.error('Error selecting IFC:', err);
+  }
+}
 
 // async function setupManagerDatabase() {
 //   return new Promise<void>((resolve, reject) => {
@@ -159,54 +211,37 @@
 //   });
 // }
 
-// async function setupProjectDatabase() {
-//     return new Promise<void>((resolve, reject) => {
-    
-//       db.run(projectSQL, (err: Error | null) => {
-//         if (err) {
-//           console.error(err.message);
-//           reject(err);
-//         } else {
-//           console.log('Project Table created or already exists');
-//           resolve();
-//         }
-//       });
-//     });
-// }
+function setupProjectDatabase() {
+  db.exec(projectSQL);
+  console.log('Project Table created or already exists.');
+}
 
-// async function insertProject() {
-//     return new Promise<void>((resolve, reject) => {
-//       const insertProjectSQL = `
-//         INSERT INTO project (name, description, role, status, finishDate, project_ifc)
-//         VALUES ("project", "description", "architect", "pending", datetime('now'), 1)
-//       `;
-    
-//       db.run(insertProjectSQL, (err: Error | null) => {
-//         if (err) {
-//           console.error(err.message);
-//           reject(err);
-//         } else {
-//           console.log('Project insert Row added to the table');
-//           resolve();
-//         }
-//       });
-//     });
-//   }
+function insertProject() {
+  try {
+      const insertProjectSQL = `
+        INSERT INTO project (name, description, status, finishDate, project_ifc)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      db.prepare(insertProjectSQL).run("project", "description", "pending", "2024-11-13", 1);
+      console.log("Project inserted into the database.");
+    } catch (err) {
+      console.error('Error inserting project:', err);
+    }
+}
 
-//   async function selectProject() {
-//     return new Promise<void>((resolve, reject) => {
-//       const selectProjectSQL = `SELECT * FROM project WHERE id = ?`;
-//       db.get(selectProjectSQL, 1, (err: Error | null, row: any) => {
-//         if (err) {
-//           console.error(err.message);
-//           reject(err);
-//         } else {
-//           console.log('Retrieved row:', row);
-//           resolve();
-//         }
-//       });
-//     });
-//   }
+function selectProject() {
+  try {
+    const selectProjectSQL = db.prepare("SELECT * FROM project WHERE id = ?");
+    const row = selectProjectSQL.get(1);
+    if (row) {
+      console.log('Retrieved row:', row);
+    } else {
+      console.log('No row found with the given ID.');
+    }
+  } catch (err) {
+    console.error('Error selecting project:', err);
+  }
+}
   
 
 
@@ -259,36 +294,26 @@
 //   });
 // }
 
-// async function closeDatabase() {
-//   return new Promise<void>((resolve, reject) => {
-//     db.close((err: Error | null) => {
-//       if (err) {
-//         console.error(err.message);
-//         reject(err);
-//       } else {
-//         console.log('Close the database connection.');
-//         resolve();
-//       }
-//     });
-//   });
-// }
+function closeDatabase() {
+  db.close();
+  console.log("Close Database.");
+}
 
-// async function main() {
-//   try {
-//     // await setupManagerDatabase();
-//     // await insertManager();
-//     // await selectManager();
-//     // await setupTodoDatabase();
-//     // await insertTodo();
-//     // await selectTodo();
-//     await setupProjectDatabase();
-//     await insertProject();
-//     await selectProject();
-//   } catch (error) {
-//     console.error('An error occurred:', error);
-//   } finally {
-//     await closeDatabase();
-//   }
-// }
+function main() {
+  try {
+    setupIfcDatabase();
+    insertIfcSQL();
+    selectIFC();
+
+    setupProjectDatabase();
+    insertProject();
+    selectProject();
+    
+  } catch (error) {
+    console.error('An error occurred:', error);
+  } finally {
+    closeDatabase();
+  }
+}
 
 // main();

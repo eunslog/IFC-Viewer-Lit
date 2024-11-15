@@ -7,7 +7,6 @@ import projectInformation from "./components/Panels/ProjectInformation";
 import elementData from "./components/Panels/Selection";
 import settings from "./components/Panels/Settings";
 import load from "./components/Toolbars/Sections/Import";
-import help from "./components/Panels/Help";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import clipEdges from "./components/Toolbars/Sections/ClipEdges";
@@ -15,6 +14,7 @@ import { AppManager } from "./bim-components";
 import hiderPanel from "./components/Panels/Sections/Hider";
 import * as WEBIFC from "web-ifc";
 import * as OBCF from "@thatopen/components-front";
+
 
 BUI.Manager.init();
 
@@ -111,6 +111,7 @@ world.camera.controls.addEventListener("rest", () => {
   tilesLoader.culler.needsUpdate = true;
 });
 
+
 const marker = components.get(OBCF.Marker);
 marker.threshold = 10;
 
@@ -172,17 +173,15 @@ const placeMarkerOnSelected = () => {
 };
 
 
+const fragmentsManager = components.get(OBC.FragmentsManager);
+fragmentsManager.onFragmentsLoaded.add((model) => {
+  if (world.scene) world.scene.three.add(model);
+});
 
-fragments.onFragmentsLoaded.add(async (model) => {
-  if (model.hasProperties) {
-    await indexer.process(model);
-    classifier.byEntity(model);
-    await classifier.bySpatialStructure(model, {
-      isolate: new Set([WEBIFC.IFCBUILDINGSTOREY]),
-    });
 
-    updateHiderPanel(); 
-  }
+fragmentsManager.onFragmentsLoaded.add(async (model) => {
+
+  await classifier.byPredefinedType(model);
 
   for (const fragment of model.items) {
     world.meshes.add(fragment.mesh);
@@ -193,6 +192,24 @@ fragments.onFragmentsLoaded.add(async (model) => {
   setTimeout(async () => {
     world.camera.fit(world.meshes, 0.8);
   }, 50);
+
+  if(model.hasProperties) {
+    await indexer.process(model);
+    classifier.byEntity(model);
+    await classifier.bySpatialStructure(model, {
+      isolate: new Set([WEBIFC.IFCBUILDINGSTOREY]),
+    });
+
+  updateHiderPanel(); 
+  }
+
+});
+
+fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
+  for (const fragmentID of fragmentIDs) {
+    const mesh = [...world.meshes].find((mesh) => mesh.uuid === fragmentID);
+    if (mesh) world.meshes.delete(mesh);
+  }
 });
 
 function updateHiderPanel() {
@@ -212,14 +229,6 @@ function updateHiderPanel() {
     console.error('Not found hider tab.');
   }
 }
-
-
-fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
-  for (const fragmentID of fragmentIDs) {
-    const mesh = [...world.meshes].find((mesh) => mesh.uuid === fragmentID);
-    if (mesh) world.meshes.delete(mesh);
-  }
-});
 
 
 const projectInformationPanel = projectInformation(components);
@@ -390,9 +399,6 @@ const leftPanel = BUI.Component.create(() => {
       <bim-tab name="settings" label="Settings" icon="solar:settings-bold">
         ${settings(components)}
       </bim-tab>
-      <bim-tab name="help" label="Help" icon="material-symbols:help">
-        ${help}
-      </bim-tab>
       <bim-tab name="hider" label="Hider" icon="mdi:eye-off-outline">
         ${hiderPanel(components)}
       </bim-tab>
@@ -400,11 +406,12 @@ const leftPanel = BUI.Component.create(() => {
   `;
 });
 
+
 app.layouts = {
   main: {
     template: `
       "leftPanel viewport" 1fr
-      /26rem 1fr
+      / 26rem 1fr
     `,
     elements: {
       leftPanel,
