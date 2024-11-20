@@ -415,7 +415,7 @@ const onMouseMove = (event: MouseEvent) => {
   if (isResizing) {
     const deltaX = event.clientX - initialMouseX;
     const newWidth = initialPanelWidth + deltaX;
-    if ((leftPanel && newWidth > 270) && (leftPanel && newWidth < 800)) { // minimum & maximum size
+    if ((leftPanel && newWidth > 0) && (leftPanel && newWidth < app.offsetWidth * 2/3)) { // minimum & maximum size
       leftPanel.style.width = `${newWidth}px`;
     }
   }
@@ -443,7 +443,7 @@ leftPanel.addEventListener('mousedown', onResizeHandleMouseDown);
 leftPanel.addEventListener('mousemove', (event) => {
   if (event.target instanceof HTMLElement) {
     const target = event.target as HTMLElement;
-    if (event.clientX > leftPanel.offsetHeight - 5) {
+    if (event.clientX > leftPanel.offsetWidth - 5) {
       target.style.cursor = 'col-resize';
     } else {
       target.style.cursor = 'default';
