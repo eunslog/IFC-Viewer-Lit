@@ -406,12 +406,58 @@ const leftPanel = BUI.Component.create(() => {
   `;
 });
 
+// control leftPanel size
+let isResizing = false;
+let initialMouseX = 0;
+let initialPanelWidth = 0;
+
+const onMouseMove = (event: MouseEvent) => {
+  if (isResizing) {
+    const deltaX = event.clientX - initialMouseX;
+    const newWidth = initialPanelWidth + deltaX;
+    if ((leftPanel && newWidth > 270) && (leftPanel && newWidth < 800)) { // minimum & maximum size
+      leftPanel.style.width = `${newWidth}px`;
+    }
+  }
+};
+
+const onMouseUp = () => {
+  if (isResizing) {
+    isResizing = false;
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+};
+
+const onResizeHandleMouseDown = (event: MouseEvent) => {
+  isResizing = true;
+  initialMouseX = event.clientX;
+  if (leftPanel) {
+    initialPanelWidth = leftPanel.offsetWidth;
+  }
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+};
+
+leftPanel.addEventListener('mousedown', onResizeHandleMouseDown);
+leftPanel.addEventListener('mousemove', (event) => {
+  if (event.target instanceof HTMLElement) {
+    const target = event.target as HTMLElement;
+    if (event.clientX > leftPanel.offsetHeight - 5) {
+      target.style.cursor = 'col-resize';
+    } else {
+      target.style.cursor = 'default';
+    }
+  }
+});
+
+
 
 app.layouts = {
   main: {
     template: `
       "leftPanel viewport" 1fr
-      / 26rem 1fr
+      / auto 1fr
     `,
     elements: {
       leftPanel,

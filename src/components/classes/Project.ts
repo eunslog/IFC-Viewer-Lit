@@ -9,7 +9,6 @@ export interface IProject {
 	status: ProjectStatus
 	userRole: UserRole
 	finishDate: Date
-  //자동으로 불러올 설계 파일을 저장
   ifc_data: Uint8Array
 }
 

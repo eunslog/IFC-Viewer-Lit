@@ -1,178 +1,27 @@
-// import * as BUI from "@thatopen/ui";
-// import * as OBC from "@thatopen/components";
-// import * as CUI from "@thatopen/ui-obc";
-// import groupings from "./Sections/Groupings";
-// import { ProjectsManager } from "../classes/ProjectsManager";
-// import { Manager } from "@thatopen/ui";
-
-// Manager.init();
-
-// export default (components: OBC.Components) => {
-//   const [modelsList] = CUI.tables.modelsList({ components });
-//   const [relationsTree] = CUI.tables.relationsTree({
-//     components,
-//     models: [],
-//     hoverHighlighterName: "hover",
-//     selectHighlighterName: "select",
-//   });
-//   relationsTree.preserveStructureOnFilter = true;
-
-//   const projectsManager = new ProjectsManager();
-  
-
-//   //add
-//   projectsManager.onProjectsUpdated = () => {
-//     updateIfcFilesList();
-//   };
-
-//   // IFC 파일 목록을 업데이트하는 함수 정의
-//   const updateIfcFilesList = () => {
-//     ifcFilesList = projectsManager.list.map((project) => {
-//       return BUI.html`
-//         <div style="display: flex; gap: 0.375rem;">
-//           <bim-label icon="mingcute:building-5-line">${project.name}</bim-label>
-//           <bim-button style="flex: 0;" @click=${() => loadIFCModel(project.id)}
-//             icon="mage:box-3d-fill" label="Load">
-//           </bim-button> 
-//         </div>
-//       `;
-//     });
-
-//     panel.requestUpdate();
-//   };
-
-//   const search = (e: Event) => {
-//     const input = e.target as BUI.TextInput;
-//     relationsTree.queryString = input.value;
-//   };
-
-//   const loadIFCModel = async (projectId: string) => {
-//     try {
-//       const ifcLoader = components.get(OBC.IfcLoader);
-//       const project = projectsManager.getProject(projectId);
-//       if (project && project.ifc_data) {
-//         const model = await ifcLoader.load(project.ifc_data);
-//         const world = components.get(OBC.Worlds).list.values().next().value;
-//         world.scene.three.add(model);
-//       } else {
-//         console.error("Project or IFC data not found for project ID:", projectId);
-//       }
-//     } catch (error) {
-//       console.error("Error loading IFC model:", error);
-//     }
-//   };
-
-//   // const showProjectDetails = (project: Project) => {
-//   //   return BUI.html`
-//   //       <div class="form-field-container">
-//   //         <bim-label icon="material-symbols:play-arrow-roundeded">
-//   //           Name: ${project.name}
-//   //         </bim-label> 
-//   //       </div>
-//   //       <div class="form-field-container">
-//   //         <bim-label icon="material-symbols:play-arrow-rounded">
-//   //           Description: ${project.description}
-//   //         </bim-label>
-//   //       </div>
-//   //       <div class="form-field-container">
-//   //         <bim-label icon="material-symbols:play-arrow-rounded">
-//   //           Role: ${project.userRole}
-//   //         </bim-label>
-//   //       </div>
-//   //       <div class="form-field-container">
-//   //         <bim-label icon="material-symbols:play-arrow-rounded">
-//   //           Status: ${project.status}
-//   //         </bim-label>
-//   //       </div>
-//   //       <div class="form-field-container">
-//   //         <bim-label icon="material-symbols:play-arrow-rounded">
-//   //           Finish Date: ${project.finishDate.toISOString().split('T')[0]}
-//   //         </bim-label>
-//   //       </div>
-//   //   `;
-//   // };
-
-
-//   // const ifcFilesList = projectsManager.list.map((project) => {
-//   //   console.log('ifcFilesList - ', project);
-//   //   return BUI.html`
-//   //     <div style="display: flex; gap: 0.375rem;">
-//   //     <bim-label icon="mingcute:building-5-line">${project.name}</bim-label>
-//   //       <bim-button style="flex: 0;" @click=${() => loadIFCModel(project.id)}
-//   //         icon="mage:box-3d-fill" label="Load">
-//   //       </bim-button> 
-//   //     </div>
-//   //   `;
-//   // });
-//   let ifcFilesList = projectsManager.list.map((project) => {
-//     return BUI.html`
-//       <div style="display: flex; gap: 0.375rem;">
-//         <bim-label icon="mingcute:building-5-line">${project.name}</bim-label>
-//         <bim-button style="flex: 0;" @click=${() => loadIFCModel(project.id)}
-//           icon="mage:box-3d-fill" label="Load">
-//         </bim-button> 
-//       </div>
-//     `;
-//   });
-
-//   const panel = BUI.Component.create<BUI.Panel>(() => {
-//     return BUI.html`
-//       <bim-panel>
-//         <bim-panel-section label="IFC Files" icon="material-symbols:list">
-//           ${ifcFilesList}
-//         </bim-panel-section>        
-//         <bim-panel-section label="Loaded Models" icon="mage:box-3d-fill">
-//           ${modelsList}
-//         </bim-panel-section>
-//         <bim-panel-section label="Spatial Structures" icon="ph:tree-structure-fill">
-//           <div style="display: flex; gap: 0.375rem;">
-//             <bim-text-input @input=${search} vertical placeholder="Search..." debounce="200"></bim-text-input>
-//             <bim-button style="flex: 0;" @click=${() => (relationsTree.expanded = !relationsTree.expanded)} icon="eva:expand-fill"></bim-button>
-//           </div>
-//           ${relationsTree}
-//         </bim-panel-section>
-//         ${groupings(components)}
-//       </bim-panel> 
-//     `;
-//   });
-
-//   return panel;
-// };
-
-
-//   // return BUI.Component.create<BUI.Panel>(() => {
-//   //   return BUI.html`
-//   //     <bim-panel>
-//   //       <bim-panel-section label="IFC Files" icon="material-symbols:list">
-//   //         ${ifcFilesList}
-//   //       </bim-panel-section>        
-//   //       <bim-panel-section label="Loaded Models" icon="mage:box-3d-fill">
-//   //         ${modelsList}
-//   //       </bim-panel-section>
-//   //       <bim-panel-section label="Spatial Structures" icon="ph:tree-structure-fill">
-//   //         <div style="display: flex; gap: 0.375rem;">
-//   //           <bim-text-input @input=${search} vertical placeholder="Search..." debounce="200"></bim-text-input>
-//   //           <bim-button style="flex: 0;" @click=${() => (relationsTree.expanded = !relationsTree.expanded)} icon="eva:expand-fill"></bim-button>
-//   //         </div>
-//   //         ${relationsTree}
-//   //       </bim-panel-section>
-//   //       ${groupings(components)}
-//   //     </bim-panel> 
-//   //   `;
-//   // });
-// // };
-
 import * as BUI from "@thatopen/ui";
 import * as OBC from "@thatopen/components";
 import * as CUI from "@thatopen/ui-obc";
 import groupings from "./Sections/Groupings";
 import { ProjectsManager } from "../classes/ProjectsManager";
 import { Manager } from "@thatopen/ui";
-import { LitElement, html } from 'lit';
-import { state } from 'lit/decorators.js';
+// import Iconify from "../../../node_modules/@iconify/iconify";
+// import Iconify from 'iconify-icon';
+//import Iconify from "@iconify/iconify";
+
+// declare global {
+//   interface Window {
+//     iconifyData: any; 
+//   }
+// }
 
 
 Manager.init();
+
+// if (window.iconifyData) {
+//   Iconify.addCollection(window.iconifyData);
+// }
+
+
 
 export default (components: OBC.Components) => {
   const [modelsList] = CUI.tables.modelsList({ components });
@@ -193,8 +42,7 @@ export default (components: OBC.Components) => {
   };
 
   
-  
-  // IFC 파일 목록 update
+  // IFC file list update
   const updateIfcFilesList = () => {
     ifcFilesList = projectsManager.list.map((project) => {
       return BUI.html`
@@ -224,42 +72,13 @@ export default (components: OBC.Components) => {
         const world = components.get(OBC.Worlds).list.values().next().value;
         world.scene.three.add(model);
       } else {
-        console.error("Project or IFC data not found for project ID:", projectId);
+        console.error
+        ("Project or IFC data not found for project ID:", projectId);
       }
     } catch (error) {
       console.error("Error loading IFC model:", error);
     }
   };
-
-  // const showProjectDetails = (project: Project) => {
-  //   return BUI.html`
-  //       <div class="form-field-container">
-  //         <bim-label icon="material-symbols:play-arrow-roundeded">
-  //           Name: ${project.name}
-  //         </bim-label> 
-  //       </div>
-  //       <div class="form-field-container">
-  //         <bim-label icon="material-symbols:play-arrow-rounded">
-  //           Description: ${project.description}
-  //         </bim-label>
-  //       </div>
-  //       <div class="form-field-container">
-  //         <bim-label icon="material-symbols:play-arrow-rounded">
-  //           Role: ${project.userRole}
-  //         </bim-label>
-  //       </div>
-  //       <div class="form-field-container">
-  //         <bim-label icon="material-symbols:play-arrow-rounded">
-  //           Status: ${project.status}
-  //         </bim-label>
-  //       </div>
-  //       <div class="form-field-container">
-  //         <bim-label icon="material-symbols:play-arrow-rounded">
-  //           Finish Date: ${project.finishDate.toISOString().split('T')[0]}
-  //         </bim-label>
-  //       </div>
-  //   `;
-  // };
 
 
   let ifcFilesList = projectsManager.list.map((project) => {
@@ -273,14 +92,24 @@ export default (components: OBC.Components) => {
     `;
   });
 
-
-
   const panel = BUI.Component.create<BUI.Panel>(() => {
     return BUI.html`
-      <bim-panel>
+      <bim-panel>   
         <bim-panel-section label="IFC Files" icon="material-symbols:list">
+          <!-- <div style="display: flex; align-items: center;">
+            <span class="material-icons">list</span>
+          </div> -->
+          <!-- <div slot="header" style="display: flex; align-items: center;">
+            <span class="material-icons" style="margin-right: 8px;">list</span>
+            IFC Files
+          </div> -->
+          <!-- <div slot="header" style="display: flex; align-items: center;"> -->
+          <!-- <bim-label>IFC Files</bim-label> -->
+          <!-- <iconify-icon icon="mdi:home" /> -->
+          <!-- <span class="iconify" data-icon="eva:people-outline"></span>           -->
+          <!-- </div> -->
           ${ifcFilesList}
-        </bim-panel-section>        
+        </bim-panel-section>
         <bim-panel-section label="Loaded Models" icon="mage:box-3d-fill">
           ${modelsList}
         </bim-panel-section>

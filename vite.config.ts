@@ -1,10 +1,10 @@
+
 /* eslint-disable import/no-extraneous-dependencies */
 import { defineConfig } from 'vite';
-import Icons from 'unplugin-icons/vite';
-import IconsResolver from 'unplugin-icons/resolver';
-import Components from 'unplugin-vue-components/vite';
+// import Icons from 'unplugin-icons/vite';
+// import IconsResolver from 'unplugin-icons/resolver';
+// import Components from 'unplugin-vue-components/vite';
 import svgr from 'vite-plugin-svgr';
-
 
 export default defineConfig({
   base: "./",
@@ -16,11 +16,11 @@ export default defineConfig({
   // add
   plugins: [
     svgr(),
-    Components({
-      resolvers: [IconsResolver()],
-    }),
-    Icons({
-      autoInstall: true, 
-    }),
+    // Components({
+    //   resolvers: [IconsResolver()],
+    // }),
+    // Icons({
+    //   autoInstall: true, 
+    // }),
   ],
 });

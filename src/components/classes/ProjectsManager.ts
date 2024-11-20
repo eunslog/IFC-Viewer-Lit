@@ -28,7 +28,7 @@ export class ProjectsManager {
 
   async loadProjects() {
     try {
-      // 프로젝트 목록 가져오기
+      // load proejct List
       const projectResponse = await fetch('http://localhost:3000/api/projects');
       if (!projectResponse.ok) {
         throw new Error("Failed to fetch projects");
@@ -36,20 +36,13 @@ export class ProjectsManager {
       const projectRows: ProjectRow[] = await projectResponse.json();
 
       for (const row of projectRows) {
-        // 각 프로젝트에 연결된 IFC 데이터 가져오기
+        // load ifc datas from each project
         const ifcResponse = await fetch(`http://localhost:3000/api/ifc/${row.project_ifc}`);
         if (!ifcResponse.ok) {
           console.warn(`No IFC data found for project ID ${row.id}`);
           continue;
         }
         const ifcRow: IfcRow = await ifcResponse.json();
-
-        // 중복 확인
-        // const nameInUse = this.list.some((project) => project.name === row.name);
-        // if (nameInUse) {
-        //   console.warn(`Project with the name "${row.name}" already exists.`);
-        //   continue;
-        // }
 
         const projectData: IProject = {
           name: row.name,
@@ -70,7 +63,6 @@ export class ProjectsManager {
     }
   }
 
-
   filterProjects(value: string) {
     console.log("this val: ", value);
     const filteredProjects = this.list.filter((project) => {
@@ -80,13 +72,6 @@ export class ProjectsManager {
   }
 
   newProject(data: IProject) {
-    // const projectNames = this.list.map((project) => {
-    //   return project.name
-    // })
-    // const nameInUse = projectNames.includes(data.name)
-    // if (nameInUse) {
-    //   throw new Error(`A project with the name "${data.name}" already exists`)
-    // }
     const project = new Project(data);
     this.list.push(project);
     this.onProjectCreated(project);
