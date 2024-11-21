@@ -30,7 +30,7 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true // add
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "bundle-icons.js"],
   "ts-node": {
     "esm": true,
   },
