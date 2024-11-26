@@ -1,9 +1,9 @@
 import express, { Application, Request, Response } from "express";
 import cors from 'cors';
-import path from 'path';
-import fs from 'fs';
+// import path from 'path';
+// import fs from 'fs';
 import Database from "better-sqlite3";
-import { fileURLToPath } from 'url';
+// import { fileURLToPath } from 'url';
 
 
 const app: Application = express();
@@ -17,22 +17,32 @@ app.listen(port, () => {
   console.log(`Connected successfully on port ${port}`)
 });
 
-app.get('/', (req: Request, res: Response) =>  {
+app.get('/', (res: Response) =>  {
   res.send('Hello World')
 });
 
 
 // 모든 프로젝트 가져오기
-app.get('/api/projects', (req: Request, res: Response) => {
+app.get('/api/projects', (_req:Request, res: Response) => {
   try {
     const selectProjectSQL = db.prepare("SELECT * FROM project");
     const projects = selectProjectSQL.all();
-    console.log('proejcts:', projects);
+    console.log('projects:', projects);
     res.json(projects);
   } catch (err) {
     console.error("Error fetching projects:", err);
-    res.status(500).json({ error: "Failed to fetch projects" });
-  }
+    res.status(500).json({ error: "Failed to fetch projects" });  }
+});
+
+app.get('/api/projects/name', (_req:Request, res: Response) => {
+  try {
+    const selectProjectSQL = db.prepare("SELECT id, name FROM project");
+    const projects = selectProjectSQL.all();
+    console.log('projects name:', projects);
+    res.json(projects);
+  } catch (err) {
+    console.error("Error fetching projects:", err);
+    res.status(500).json({ error: "Failed to fetch projects" });  }
 });
   
 
@@ -40,36 +50,37 @@ app.get('/api/projects', (req: Request, res: Response) => {
 app.get('/api/ifc/:id', (req: Request, res: Response) => {
   try {
     const ifcId = parseInt(req.params.id, 10);
-    const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
-    const ifc = selectIFCSQL.get(ifcId) as { id: number, name: string, content: Buffer };     if (ifc) {
+    const selectIFCSQL = db.prepare("SELECT name FROM ifc WHERE id = ?");
+    const ifc = selectIFCSQL.get(ifcId) as { id: number, name: string};
+    // const ifc = selectIFCSQL.get(ifcId) as { id: number, name: string, content: Buffer };
       // res.json(ifc);
     if (ifc) {
         // Buffer를 Base64 문자열로 변환
-      const base64Content = ifc.content.toString('base64');
+      // const base64Content = ifc.content.toString('base64');
       const ifcResponse = {
         id: ifc.id,
         name: ifc.name,
-        content: base64Content,
+        // content: base64Content,
       };    
       res.json(ifcResponse);  
     } else {
-      res.status(404).json({ error: "IFC not found" });
+      res.status(404);
     }
   } 
-}catch (err) {
+   catch (err) {
     console.error("Error fetching IFC:", err);
     res.status(500).json({ error: "Failed to fetch IFC" });
   }
 });
 
 
-const ifcSQL = `
-  CREATE TABLE IF NOT EXISTS ifc (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    content BLOB
-  )
-`;
+// const ifcSQL = `
+//   CREATE TABLE IF NOT EXISTS ifc (
+//     id INTEGER PRIMARY KEY AUTOINCREMENT,
+//     name TEXT,
+//     content BLOB
+//   )
+// `;
 
 // const managerSQL = `
 //   CREATE TABLE IF NOT EXISTS manager (
@@ -83,17 +94,17 @@ const ifcSQL = `
 // `;
 
 //     name TEXT UNIQUE -?
-const projectSQL = `
-  CREATE TABLE IF NOT EXISTS project (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    description TEXT,
-    status TEXT,
-    finishDate TEXT,
-    project_ifc INTEGER,
-    FOREIGN KEY (project_ifc) REFERENCES ifc(id)
-  )
-`;
+// const projectSQL = `
+//   CREATE TABLE IF NOT EXISTS project (
+//     id INTEGER PRIMARY KEY AUTOINCREMENT,
+//     name TEXT,
+//     description TEXT,
+//     status TEXT,
+//     finishDate TEXT,
+//     project_ifc INTEGER,
+//     FOREIGN KEY (project_ifc) REFERENCES ifc(id)
+//   )
+// `;
 
 // const todoSQL = `
 //   CREATE TABLE IF NOT EXISTS todo (
@@ -111,55 +122,55 @@ const projectSQL = `
 // `;
 
 // 파일 경로 
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const filePath = path.join(__dirname, '../../sampleIFC/small.ifc');
+// const __dirname = fileURLToPath(new URL(".", import.meta.url));
+// const filePath = path.join(__dirname, '../../sampleIFC/small.ifc');
 
-function setupIfcDatabase() {
-    db.exec(ifcSQL);
-    console.log('IFC Table created or already exists.');
-}
+// function setupIfcDatabase() {
+//     db.exec(ifcSQL);
+//     console.log('IFC Table created or already exists.');
+// }
 
-function insertIfcSQL() {
-  try {
-      const fileContent = fs.readFileSync(filePath);
-      const insertIfcSQL = `
-          INSERT INTO ifc (name, content)
-          VALUES (?, ?)
-      `;
-      db.prepare(insertIfcSQL).run("small.ifc", fileContent);
-      console.log("IFC file inserted into the database.");
-      } catch (err) {
-      console.error('Error reading or inserting the file:', err);
-  }
-}
+// function insertIfcSQL() {
+//   try {
+//       const fileContent = fs.readFileSync(filePath);
+//       const insertIfcSQL = `
+//           INSERT INTO ifc (name, content)
+//           VALUES (?, ?)
+//       `;
+//       db.prepare(insertIfcSQL).run("small.ifc", fileContent);
+//       console.log("IFC file inserted into the database.");
+//       } catch (err) {
+//       console.error('Error reading or inserting the file:', err);
+//   }
+// }
 
-function selectIFCs() {
-  try {
-    const selectIFCSQL = db.prepare("SELECT * FROM ifc");
-    const rows = selectIFCSQL.get();
-    if (rows) {
-      console.log('Retrieved rows:', rows);
-    } else {
-      console.log('No row found with the given ID.');
-    }
-  } catch (err) {
-    console.error('Error selecting IFCs:', err);
-  }
-}
+// function selectIFCs() {
+//   try {
+//     const selectIFCSQL = db.prepare("SELECT * FROM ifc");
+//     const rows = selectIFCSQL.get();
+//     if (rows) {
+//       console.log('Retrieved rows:', rows);
+//     } else {
+//       console.log('No row found with the given ID.');
+//     }
+//   } catch (err) {
+//     console.error('Error selecting IFCs:', err);
+//   }
+// }
 
-function selectIFC() {
-  try {
-    const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
-    const row = selectIFCSQL.get(1);
-    if (row) {
-      console.log('Retrieved row:', row);
-    } else {
-      console.log('No row found with the given ID.');
-    }
-  } catch (err) {
-    console.error('Error selecting IFC:', err);
-  }
-}
+// function selectIFC() {
+//   try {
+//     const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
+//     const row = selectIFCSQL.get(1);
+//     if (row) {
+//       console.log('Retrieved row:', row);
+//     } else {
+//       console.log('No row found with the given ID.');
+//     }
+//   } catch (err) {
+//     console.error('Error selecting IFC:', err);
+//   }
+// }
 
 // async function setupManagerDatabase() {
 //   return new Promise<void>((resolve, reject) => {
@@ -211,37 +222,37 @@ function selectIFC() {
 //   });
 // }
 
-function setupProjectDatabase() {
-  db.exec(projectSQL);
-  console.log('Project Table created or already exists.');
-}
+// function setupProjectDatabase() {
+//   db.exec(projectSQL);
+//   console.log('Project Table created or already exists.');
+// }
 
-function insertProject() {
-  try {
-      const insertProjectSQL = `
-        INSERT INTO project (name, description, status, finishDate, project_ifc)
-        VALUES (?, ?, ?, ?, ?)
-      `;
-      db.prepare(insertProjectSQL).run("project", "description", "pending", "2024-11-13", 1);
-      console.log("Project inserted into the database.");
-    } catch (err) {
-      console.error('Error inserting project:', err);
-    }
-}
+// function insertProject() {
+//   try {
+//       const insertProjectSQL = `
+//         INSERT INTO project (name, description, status, finishDate, project_ifc)
+//         VALUES (?, ?, ?, ?, ?)
+//       `;
+//       db.prepare(insertProjectSQL).run("project", "description", "pending", "2024-11-13", 1);
+//       console.log("Project inserted into the database.");
+//     } catch (err) {
+//       console.error('Error inserting project:', err);
+//     }
+// }
 
-function selectProject() {
-  try {
-    const selectProjectSQL = db.prepare("SELECT * FROM project WHERE id = ?");
-    const row = selectProjectSQL.get(1);
-    if (row) {
-      console.log('Retrieved row:', row);
-    } else {
-      console.log('No row found with the given ID.');
-    }
-  } catch (err) {
-    console.error('Error selecting project:', err);
-  }
-}
+// function selectProject() {
+//   try {
+//     const selectProjectSQL = db.prepare("SELECT * FROM project WHERE id = ?");
+//     const row = selectProjectSQL.get(1);
+//     if (row) {
+//       console.log('Retrieved row:', row);
+//     } else {
+//       console.log('No row found with the given ID.');
+//     }
+//   } catch (err) {
+//     console.error('Error selecting project:', err);
+//   }
+// }
   
 
 
@@ -294,26 +305,26 @@ function selectProject() {
 //   });
 // }
 
-function closeDatabase() {
-  db.close();
-  console.log("Close Database.");
-}
+// function closeDatabase() {
+//   db.close();
+//   console.log("Close Database.");
+// }
 
-function main() {
-  try {
-    setupIfcDatabase();
-    insertIfcSQL();
-    selectIFC();
+// function main() {
+//   try {
+//     setupIfcDatabase();
+//     insertIfcSQL();
+//     selectIFC();
 
-    setupProjectDatabase();
-    insertProject();
-    selectProject();
+//     setupProjectDatabase();
+//     insertProject();
+//     selectProject();
     
-  } catch (error) {
-    console.error('An error occurred:', error);
-  } finally {
-    closeDatabase();
-  }
-}
+//   } catch (error) {
+//     console.error('An error occurred:', error);
+//   } finally {
+//     closeDatabase();
+//   }
+// }
 
 // main();

@@ -16,6 +16,7 @@ import * as WEBIFC from "web-ifc";
 import * as OBCF from "@thatopen/components-front";
 
 
+
 BUI.Manager.init();
 
 const components = new OBC.Components();
@@ -251,11 +252,11 @@ const volumeMeasurement = components.get(OBCF.VolumeMeasurement);
 volumeMeasurement.world = world;
 volumeMeasurement.enabled = false;
 
-highlighter.events.select.onHighlight.add((event) => {
-  if (volumeMeasurement.enabled) {
-    const volume = volumeMeasurement.getVolumeFromFragments(event);
-  }
-});
+// highlighter.events.select.onHighlight.add((event) => {
+//   if (volumeMeasurement.enabled) {
+//     const volume = volumeMeasurement.getVolumeFromFragments(event);
+//   }
+// });
 
 highlighter.events.select.onClear.add(() => {
   if (volumeMeasurement.enabled) {

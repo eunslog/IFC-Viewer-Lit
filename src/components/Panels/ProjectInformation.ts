@@ -21,9 +21,12 @@ Manager.init();
 //   Iconify.addCollection(window.iconifyData);
 // }
 
-
+const projectsManager = new ProjectsManager();
+let isLoadingProjects = true;
+let panel: BUI.Panel;
 
 export default (components: OBC.Components) => {
+  
   const [modelsList] = CUI.tables.modelsList({ components });
   const [relationsTree] = CUI.tables.relationsTree({
     components,
@@ -33,66 +36,58 @@ export default (components: OBC.Components) => {
   });
   relationsTree.preserveStructureOnFilter = true;
 
-  const projectsManager = new ProjectsManager();
 
-  //add
+
+
   projectsManager.onProjectsUpdated = () => {
-    updateIfcFilesList();
-    panel.requestUpdate();
+    console.log('Projects updated:', projectsManager.list);
+    console.log('Projects length:', projectsManager.list.length);
+    isLoadingProjects = false; 
+    panel.requestUpdate(); 
+
   };
 
   
-  // IFC file list update
-  const updateIfcFilesList = () => {
-    ifcFilesList = projectsManager.list.map((project) => {
+
+  projectsManager.loadProjects();
+    
+
+
+  const getIfcFilesListTemplate = () => {
+
+    console.log('projectsManager list:', projectsManager.list);
+    console.log('projectsManager list length:', projectsManager.list.length);
+
+    if(projectsManager.list.length > 0) {
       return BUI.html`
-        <div style="display: flex; gap: 0.375rem;">
-          <bim-label icon="mingcute:building-5-line">${project.name}</bim-label>
-          <bim-button style="flex: 0;" @click=${() => loadIFCModel(project.id)}
-            icon="mage:box-3d-fill" label="Load">
-          </bim-button> 
+        <div>
+          ${projectsManager.list.map(
+            (project) => BUI.html`
+              <div style="display: flex; gap: 0.375rem; margin-bottom: 0.5rem;">
+                <bim-label>${project.name}</bim-label>
+              </div>
+            `
+          )}
         </div>
       `;
-    });
+    } else {
+      return BUI.html `<div>No projects available.</div>`;
+    }
 
-    panel.requestUpdate();
   };
+  
+
 
   const search = (e: Event) => {
     const input = e.target as BUI.TextInput;
     relationsTree.queryString = input.value;
   };
 
-  const loadIFCModel = async (projectId: string) => {
-    try {
-      const ifcLoader = components.get(OBC.IfcLoader);
-      const project = projectsManager.getProject(projectId);
-      if (project && project.ifc_data) {
-        const model = await ifcLoader.load(project.ifc_data);
-        const world = components.get(OBC.Worlds).list.values().next().value;
-        world.scene.three.add(model);
-      } else {
-        console.error
-        ("Project or IFC data not found for project ID:", projectId);
-      }
-    } catch (error) {
-      console.error("Error loading IFC model:", error);
-    }
-  };
+
+  panel = BUI.Component.create<BUI.Panel>(() => {
+    console.log('panel create');
 
 
-  let ifcFilesList = projectsManager.list.map((project) => {
-    return BUI.html`
-      <div style="display: flex; gap: 0.375rem;">
-        <bim-label icon="mingcute:building-5-line">${project.name}</bim-label>
-        <bim-button style="flex: 0;" @click=${() => loadIFCModel(project.id)}
-          icon="mage:box-3d-fill" label="Load">
-        </bim-button> 
-      </div>
-    `;
-  });
-
-  const panel = BUI.Component.create<BUI.Panel>(() => {
     return BUI.html`
       <bim-panel>   
         <bim-panel-section label="IFC Files" icon="material-symbols:list">
@@ -108,7 +103,7 @@ export default (components: OBC.Components) => {
           <!-- <iconify-icon icon="mdi:home" /> -->
           <!-- <span class="iconify" data-icon="eva:people-outline"></span>           -->
           <!-- </div> -->
-          ${ifcFilesList}
+          ${getIfcFilesListTemplate()} 
         </bim-panel-section>
         <bim-panel-section label="Loaded Models" icon="mage:box-3d-fill">
           ${modelsList}
@@ -127,5 +122,3 @@ export default (components: OBC.Components) => {
 
   return panel;
 };
-
-
