@@ -5,21 +5,21 @@ export type UserRole = "architect" | "engineer" | "developer"
 
 export interface IProject {
   name: string
-	description: string
-	status: ProjectStatus
-	userRole: UserRole
-	finishDate: Date
-  ifc_data: Uint8Array
+	// description: string
+	// status: ProjectStatus
+	// userRole: UserRole
+	// finishDate: Date
+  // ifc_data: Uint8Array
 }
 
 export class Project implements IProject {
 	//To satisfy IProject
   name!: string
-  description!: string
-  status!: "pending" | "active" | "finished"
-  userRole!: "architect" | "engineer" | "developer"
-  finishDate!: Date
-  ifc_data!: Uint8Array
+  // description!: string
+  // status!: "pending" | "active" | "finished"
+  // userRole!: "architect" | "engineer" | "developer"
+  // finishDate!: Date
+  // ifc_data!: Uint8Array
   
   //Class internals
   ui!: HTMLDivElement
