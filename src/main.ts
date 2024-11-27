@@ -3,6 +3,8 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
+import * as WEBIFC from "web-ifc";
+import { AppManager } from "./bim-components";
 import projectInformation from "./components/Panels/ProjectInformation";
 import elementData from "./components/Panels/Selection";
 import settings from "./components/Panels/Settings";
@@ -10,9 +12,7 @@ import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import clipEdges from "./components/Toolbars/Sections/ClipEdges";
-import { AppManager } from "./bim-components";
 import hiderPanel from "./components/Panels/Sections/Hider";
-import * as WEBIFC from "web-ifc";
 
 
 BUI.Manager.init();
@@ -95,7 +95,6 @@ tilesLoader.world = world;
 tilesLoader.culler.threshold = 10;
 tilesLoader.culler.maxHiddenTime = 1000;
 tilesLoader.culler.maxLostTime = 40000;
-// ---
 
 const highlighter = components.get(OBF.Highlighter);
 highlighter.setup({ world });
