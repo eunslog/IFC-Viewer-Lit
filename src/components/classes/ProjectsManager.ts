@@ -1,70 +1,51 @@
-// import { IProject, Project, ProjectStatus } from "./Project"
-import { IProject, Project } from "./Project"
+import { IProject, Project, ProjectStatus } from "./Project"
 
 interface ProjectRow {
   id: number;
   name: string;
-  // description: string;
-  // status: ProjectStatus;
-  // finishDate: string;
-  // project_ifc: number;
+  description: string;
+  status: ProjectStatus;
+  finishDate: string;
+  project_ifc: number;
 }
 
-// interface IfcRow {
-//   id: number;
-//   name: string;
-//   content: Uint8Array;
-// }
+interface IfcRow {
+  id: number;
+  name: string;
+  content: Uint8Array;
+}
 
 
 export class ProjectsManager {
-  // onProjectCreated = (project: Project) => {}
-  onProjectDeleted = () => {}
-  onProjectsUpdated = () => {}  // add
 
-  readonly first: IProject = {
-    name: "name1",
-  };
+  onProjectDeleted = () => {}
+  onProjectsUpdated = () => {}
+
 
   list: IProject[] = [];
 
-
   constructor() {
-    // this.list.push(this.first);
     this.loadProjects();
   }
 
   async loadProjects() {
     try {
       // load proejct List
-      const projectResponse = await fetch('http://localhost:3000/api/projects/name');
+      const projectResponse = await fetch('http://localhost:3000/api/projects/simple');
       if (!projectResponse.ok) {
         throw new Error("Failed to fetch projects");
       }
       const projectRows: ProjectRow[] = await projectResponse.json();
-
+      console.log("projectRows:", projectRows);
       for (const row of projectRows) {
-        // load ifc datas from each project
-        // const ifcResponse = await fetch(`http://localhost:3000/api/ifc/${row.project_ifc}`);
-        // if (!ifcResponse.ok) {
-        //   console.warn(`No IFC data found for project ID ${row.id}`);
-        //   continue;
-        // }
-        // const ifcRow: IfcRow = await ifcResponse.json();
-
         const projectData: IProject = {
+          id: row.id,
           name: row.name,
-          // description: row.description,
-          // status: row.status,
-          // userRole: "architect",
-          // finishDate: new Date(row.finishDate),
-          // ifc_data: new Uint8Array(ifcRow.content)
+          project_ifc: row.project_ifc
         };
         this.newProject(projectData);
       }
-
       console.log("Projects loaded from API successfully.");
-      this.onProjectsUpdated(); // add
       
     } catch (err) {
       console.error("Error loading projects from API:", err);
@@ -80,27 +61,41 @@ export class ProjectsManager {
   }
 
   newProject(data: IProject) {
-    // const project = new Project(data);
     this.list.push(data);
     return data
   }
 
-  // getProject(id: string) {
-  //   const project = this.list.find((project) => {
-  //     return project.id === id
-  //   })
-  //   return project
-  // }
-  
-  // deleteProject(id: string) {
-  //   const project = this.getProject(id)
-  //   if (!project) { return }
-  //   const remaining = this.list.filter((project) => {
-  //     return project.id !== id
-  //   })
-  //   this.list = remaining
-  //   this.onProjectDeleted()
-  // }
+  async loadIFC(ifcId: number) {
+    try{
+      const ifcResponse = await fetch(`http://localhost:3000/api/ifc/${ifcId}`);
+      if (!ifcResponse.ok) {
+        console.warn(`Not found IFC data for ifc ID ${ifcId}`);
+        return null;
+      }
+      const ifcRow: IfcRow = await ifcResponse.json();
+
+      // check ifcRow.content exists
+      if (!ifcRow.content || ifcRow.content.length === 0) {
+        console.error("Not found IFC data found.");
+        return null;
+      }
+
+      if (typeof ifcRow.content === 'string') {
+      const decodedContent = atob(ifcRow.content);
+      const ifc_data = new Uint8Array(decodedContent.length);
+      for (let i = 0; i < decodedContent.length; i++) {
+        ifc_data[i] = decodedContent.charCodeAt(i);
+      }
+
+      return ifc_data;
+      }
+    }
+    catch (error) {
+      console.error("Error loading IFC data:", error);
+      return null;
+    }
+  }
+
   
   exportToJSON(fileName: string = "projects") {
     const json = JSON.stringify(this.list, null, 2)

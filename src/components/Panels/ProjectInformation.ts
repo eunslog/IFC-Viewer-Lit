@@ -25,6 +25,7 @@ const projectsManager = new ProjectsManager();
 let isLoadingProjects = true;
 let panel: BUI.Panel;
 
+
 export default (components: OBC.Components) => {
   
   const [modelsList] = CUI.tables.modelsList({ components });
@@ -36,27 +37,23 @@ export default (components: OBC.Components) => {
   });
   relationsTree.preserveStructureOnFilter = true;
 
-
-
-
-  projectsManager.onProjectsUpdated = () => {
-    console.log('Projects updated:', projectsManager.list);
-    console.log('Projects length:', projectsManager.list.length);
-    isLoadingProjects = false; 
-    panel.requestUpdate(); 
-
+  const loadIFCModel = async (ifcId: number) => {
+    try {
+      const ifcLoader = components.get(OBC.IfcLoader);
+      const project = await projectsManager.loadIFC(ifcId);
+      if (project) {
+        const model = await ifcLoader.load(project);
+        const world = components.get(OBC.Worlds).list.values().next().value;
+        world.scene.three.add(model);
+      } else {
+        console.error("Project or IFC data not found for ifc ID:", ifcId);
+      }
+    } catch (error) {
+      console.error("Error loading IFC model:", error);
+    }
   };
 
-  
-
-  projectsManager.loadProjects();
-    
-
-
   const getIfcFilesListTemplate = () => {
-
-    console.log('projectsManager list:', projectsManager.list);
-    console.log('projectsManager list length:', projectsManager.list.length);
 
     if(projectsManager.list.length > 0) {
       return BUI.html`
@@ -64,7 +61,10 @@ export default (components: OBC.Components) => {
           ${projectsManager.list.map(
             (project) => BUI.html`
               <div style="display: flex; gap: 0.375rem; margin-bottom: 0.5rem;">
-                <bim-label>${project.name}</bim-label>
+                <bim-label icon="mingcute:building-5-line">${project.name}</bim-label>
+                <bim-button style="flex:0;" @click=${() => loadIFCModel(project.project_ifc)}
+                 icon="mage:box-3d-fill" label="Load">
+                 </bim-button>
               </div>
             `
           )}
@@ -76,7 +76,6 @@ export default (components: OBC.Components) => {
 
   };
   
-
 
   const search = (e: Event) => {
     const input = e.target as BUI.TextInput;

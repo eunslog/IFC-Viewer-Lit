@@ -13,8 +13,6 @@ import clipEdges from "./components/Toolbars/Sections/ClipEdges";
 import { AppManager } from "./bim-components";
 import hiderPanel from "./components/Panels/Sections/Hider";
 import * as WEBIFC from "web-ifc";
-import * as OBCF from "@thatopen/components-front";
-
 
 
 BUI.Manager.init();
@@ -113,7 +111,7 @@ world.camera.controls.addEventListener("rest", () => {
 });
 
 
-const marker = components.get(OBCF.Marker);
+const marker = components.get(OBF.Marker);
 marker.threshold = 10;
 
 const markerMap = new Map<string, { position: THREE.Vector3, count: number, labelMarkerId?: string }>();
@@ -238,17 +236,17 @@ const elementDataPanel = elementData(components);
 const app = document.getElementById("app") as BUI.Grid;
 
 // EdgeMeasurement
-const edgeMeasurement = components.get(OBCF.EdgeMeasurement);
+const edgeMeasurement = components.get(OBF.EdgeMeasurement);
 edgeMeasurement.world = world;
 edgeMeasurement.enabled = false;
 
 // FaceMeasurement
-const faceMeasurement = components.get(OBCF.FaceMeasurement);
+const faceMeasurement = components.get(OBF.FaceMeasurement);
 faceMeasurement.world = world;
 faceMeasurement.enabled = false;
 
 // VolumeMeasurement
-const volumeMeasurement = components.get(OBCF.VolumeMeasurement);
+const volumeMeasurement = components.get(OBF.VolumeMeasurement);
 volumeMeasurement.world = world;
 volumeMeasurement.enabled = false;
 
@@ -362,7 +360,7 @@ const toolbar = BUI.Component.create(() => {
 
 
 let savedEdgeMeasurements: number[][] = [];
-let savedFaceMeasurements: OBCF.SerializedAreaMeasure[] = [];
+let savedFaceMeasurements: OBF.SerializedAreaMeasure[] = [];
 
 window.addEventListener("keydown", (event) => {
   if (event.code === "KeyO") {

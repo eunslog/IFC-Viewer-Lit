@@ -1,9 +1,9 @@
 import express, { Application, Request, Response } from "express";
 import cors from 'cors';
-// import path from 'path';
-// import fs from 'fs';
+import path from 'path';
+import fs from 'fs';
 import Database from "better-sqlite3";
-// import { fileURLToPath } from 'url';
+import { fileURLToPath } from 'url';
 
 
 const app: Application = express();
@@ -18,53 +18,58 @@ app.listen(port, () => {
 });
 
 app.get('/', (res: Response) =>  {
-  res.send('Hello World')
+  res.send('IFC Viewer')
 });
 
 
-// 모든 프로젝트 가져오기
-app.get('/api/projects', (_req:Request, res: Response) => {
+// get all projects
+app.get('/api/projects', (_req: Request, res: Response) => {
   try {
     const selectProjectSQL = db.prepare("SELECT * FROM project");
     const projects = selectProjectSQL.all();
-    console.log('projects:', projects);
+    console.log('projects: ', projects);
     res.json(projects);
   } catch (err) {
-    console.error("Error fetching projects:", err);
+    console.error("Error fetching projects: ", err);
     res.status(500).json({ error: "Failed to fetch projects" });  }
 });
 
-app.get('/api/projects/name', (_req:Request, res: Response) => {
+// get project
+app.get('/api/projects/simple', (_req: Request, res: Response) => {
   try {
-    const selectProjectSQL = db.prepare("SELECT id, name FROM project");
+    const selectProjectSQL = db.prepare("SELECT id, name, project_ifc FROM project");
     const projects = selectProjectSQL.all();
-    console.log('projects name:', projects);
+    console.log('projects simple info: ', projects);
     res.json(projects);
   } catch (err) {
-    console.error("Error fetching projects:", err);
+    console.error("Error fetching projects: ", err);
     res.status(500).json({ error: "Failed to fetch projects" });  }
 });
   
 
-// 특정 IFC 가져오기
+// get IFC
 app.get('/api/ifc/:id', (req: Request, res: Response) => {
   try {
     const ifcId = parseInt(req.params.id, 10);
-    const selectIFCSQL = db.prepare("SELECT name FROM ifc WHERE id = ?");
-    const ifc = selectIFCSQL.get(ifcId) as { id: number, name: string};
-    // const ifc = selectIFCSQL.get(ifcId) as { id: number, name: string, content: Buffer };
-      // res.json(ifc);
-    if (ifc) {
-        // Buffer를 Base64 문자열로 변환
-      // const base64Content = ifc.content.toString('base64');
+    const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
+    const ifc = selectIFCSQL.get(ifcId) as { content: Buffer };
+
+    if (!ifc) {
+      console.warn(`IFC data not found for id: ${ifcId}`);
+      res.status(404).json({ error: "IFC data not found" });
+      return;
+    }
+
+    if (ifc.content) {
+      // Buffer to Base64 string
+      const base64Content = ifc.content.toString('base64');
       const ifcResponse = {
-        id: ifc.id,
-        name: ifc.name,
-        // content: base64Content,
+        content: base64Content,
       };    
       res.json(ifcResponse);  
-    } else {
-      res.status(404);
+    }  else {
+      console.error("IFC content is empty for id:", ifcId);
+      res.status(404).json({ error: "IFC content is empty" });
     }
   } 
    catch (err) {
@@ -72,6 +77,7 @@ app.get('/api/ifc/:id', (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to fetch IFC" });
   }
 });
+
 
 
 // const ifcSQL = `
@@ -121,56 +127,84 @@ app.get('/api/ifc/:id', (req: Request, res: Response) => {
 //   )
 // `;
 
-// 파일 경로 
-// const __dirname = fileURLToPath(new URL(".", import.meta.url));
-// const filePath = path.join(__dirname, '../../sampleIFC/small.ifc');
+// ifc file path
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const filePath = path.join(__dirname, '../../sampleIFC/HNS-CTL-MOD-EST-001.ifc');
 
 // function setupIfcDatabase() {
 //     db.exec(ifcSQL);
 //     console.log('IFC Table created or already exists.');
 // }
 
-// function insertIfcSQL() {
-//   try {
-//       const fileContent = fs.readFileSync(filePath);
-//       const insertIfcSQL = `
-//           INSERT INTO ifc (name, content)
-//           VALUES (?, ?)
-//       `;
-//       db.prepare(insertIfcSQL).run("small.ifc", fileContent);
-//       console.log("IFC file inserted into the database.");
-//       } catch (err) {
-//       console.error('Error reading or inserting the file:', err);
-//   }
-// }
+function insertIfcSQL() {
+  try {
+      const fileContent = fs.readFileSync(filePath);
+      const insertIfcSQL = `
+          INSERT INTO ifc (name, content)
+          VALUES (?, ?)
+      `;
+      db.prepare(insertIfcSQL).run("HNS-CTL-MOD-EST-001.ifc", fileContent);
+      console.log("IFC file inserted into the database.");
+      } catch (err) {
+      console.error('Error reading or inserting the file:', err);
+  }
+}
 
-// function selectIFCs() {
-//   try {
-//     const selectIFCSQL = db.prepare("SELECT * FROM ifc");
-//     const rows = selectIFCSQL.get();
-//     if (rows) {
-//       console.log('Retrieved rows:', rows);
-//     } else {
-//       console.log('No row found with the given ID.');
-//     }
-//   } catch (err) {
-//     console.error('Error selecting IFCs:', err);
-//   }
-// }
+function selectIFCs() {
+  try {
+    const selectIFCSQL = db.prepare("SELECT id FROM ifc");
+    const rows = selectIFCSQL.get();
+    if (rows) {
+      console.log('Retrieved rows:', rows);
+    } else {
+      console.log('No row found with the given ID.');
+    }
+  } catch (err) {
+    console.error('Error selecting IFCs:', err);
+  }
+}
 
-// function selectIFC() {
-//   try {
-//     const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
-//     const row = selectIFCSQL.get(1);
-//     if (row) {
-//       console.log('Retrieved row:', row);
-//     } else {
-//       console.log('No row found with the given ID.');
-//     }
-//   } catch (err) {
-//     console.error('Error selecting IFC:', err);
-//   }
-// }
+function selectIFC(id: number) {
+  try {
+    const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
+    const row = selectIFCSQL.get(id);
+    if (row) {
+      console.log('Retrieved row:', row);
+    } else {
+      console.log('No row found with the given ID.');
+    }
+  } catch (err) {
+    console.error('Error selecting IFC:', err);
+  }
+}
+
+function deleteIFC(id: number) {
+  try {
+    const deleteIFCSQL = db.prepare("DELETE FROM ifc WHERE id = ?");
+    const row = deleteIFCSQL.run(id);
+    if (row) {
+      console.log('Retrieved row:', row);
+    } else {
+      console.log('No row found with the given ID.');
+    }
+  } catch (err) {
+    console.error('Error deleting IFC:', err);
+  }
+}
+
+function deleteProject(id: number) {
+  try {
+    const deleteProejctSQL = db.prepare("DELETE FROM project WHERE id = ?");
+    const row = deleteProejctSQL.run(id);
+    if (row) {
+      console.log('Retrieved row:', row);
+    } else {
+      console.log('No row found with the given ID.');
+    }
+  } catch (err) {
+    console.error('Error deleting Project:', err);
+  }
+}
 
 // async function setupManagerDatabase() {
 //   return new Promise<void>((resolve, reject) => {
@@ -227,32 +261,46 @@ app.get('/api/ifc/:id', (req: Request, res: Response) => {
 //   console.log('Project Table created or already exists.');
 // }
 
-// function insertProject() {
-//   try {
-//       const insertProjectSQL = `
-//         INSERT INTO project (name, description, status, finishDate, project_ifc)
-//         VALUES (?, ?, ?, ?, ?)
-//       `;
-//       db.prepare(insertProjectSQL).run("project", "description", "pending", "2024-11-13", 1);
-//       console.log("Project inserted into the database.");
-//     } catch (err) {
-//       console.error('Error inserting project:', err);
-//     }
-// }
+function insertProject() {
+  try {
+      const insertProjectSQL = `
+        INSERT INTO project (name, description, status, finishDate, project_ifc)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      db.prepare(insertProjectSQL).run("project2", "description2", "pending", "2024-11-27", 14);
+      console.log("Project inserted into the database.");
+    } catch (err) {
+      console.error('Error inserting project:', err);
+    }
+}
 
-// function selectProject() {
-//   try {
-//     const selectProjectSQL = db.prepare("SELECT * FROM project WHERE id = ?");
-//     const row = selectProjectSQL.get(1);
-//     if (row) {
-//       console.log('Retrieved row:', row);
-//     } else {
-//       console.log('No row found with the given ID.');
-//     }
-//   } catch (err) {
-//     console.error('Error selecting project:', err);
-//   }
-// }
+function selectProject(id: number) {
+  try {
+    const selectProjectSQL = db.prepare("SELECT * FROM project WHERE id = ?");
+    const row = selectProjectSQL.get(id);
+    if (row) {
+      console.log('Retrieved row:', row);
+    } else {
+      console.log('No row found with the given ID.');
+    }
+  } catch (err) {
+    console.error('Error selecting project:', err);
+  }
+}
+
+function selectProjects() {
+  try {
+    const selectProjectSQL = db.prepare("SELECT * FROM project");
+    const row = selectProjectSQL.all();
+    if (row) {
+      console.log('Retrieved row:', row);
+    } else {
+      console.log('No row found with the given ID.');
+    }
+  } catch (err) {
+    console.error('Error selecting project:', err);
+  }
+}
   
 
 
@@ -305,26 +353,25 @@ app.get('/api/ifc/:id', (req: Request, res: Response) => {
 //   });
 // }
 
-// function closeDatabase() {
-//   db.close();
-//   console.log("Close Database.");
-// }
+function closeDatabase() {
+  db.close();
+  console.log("Close Database.");
+}
 
-// function main() {
-//   try {
-//     setupIfcDatabase();
-//     insertIfcSQL();
-//     selectIFC();
+function main() {
+  try {
+    // setupIfcDatabase();
+    // insertIfcSQL();
+    // setupProjectDatabase();
+    // insertProject();
+    // selectProject(11);
+    // selectProjects();
 
-//     setupProjectDatabase();
-//     insertProject();
-//     selectProject();
-    
-//   } catch (error) {
-//     console.error('An error occurred:', error);
-//   } finally {
-//     closeDatabase();
-//   }
-// }
+  } catch (error) {
+    console.error('An error occurred:', error);
+  } finally {
+    closeDatabase();
+  }
+}
 
 // main();
