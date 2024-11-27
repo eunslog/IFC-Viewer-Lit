@@ -1,4 +1,4 @@
-import { IProject, Project, ProjectStatus } from "./Project"
+import { IProject, ProjectStatus } from "./Project"
 
 interface ProjectRow {
   id: number;
@@ -17,10 +17,6 @@ interface IfcRow {
 
 
 export class ProjectsManager {
-
-  onProjectDeleted = () => {}
-  onProjectsUpdated = () => {}
-
 
   list: IProject[] = [];
 

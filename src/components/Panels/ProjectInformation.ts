@@ -22,7 +22,6 @@ Manager.init();
 // }
 
 const projectsManager = new ProjectsManager();
-let isLoadingProjects = true;
 let panel: BUI.Panel;
 
 
@@ -84,9 +83,6 @@ export default (components: OBC.Components) => {
 
 
   panel = BUI.Component.create<BUI.Panel>(() => {
-    console.log('panel create');
-
-
     return BUI.html`
       <bim-panel>   
         <bim-panel-section label="IFC Files" icon="material-symbols:list">

@@ -80,61 +80,61 @@ app.get('/api/ifc/:id', (req: Request, res: Response) => {
 
 
 
-// const ifcSQL = `
-//   CREATE TABLE IF NOT EXISTS ifc (
-//     id INTEGER PRIMARY KEY AUTOINCREMENT,
-//     name TEXT,
-//     content BLOB
-//   )
-// `;
+const ifcSQL = `
+  CREATE TABLE IF NOT EXISTS ifc (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    content BLOB
+  )
+`;
 
-// const managerSQL = `
-//   CREATE TABLE IF NOT EXISTS manager (
-//     id INTEGER PRIMARY KEY AUTOINCREMENT,
-//     name VARCHAR(255),
-//     position VARCHAR(255),
-//     company VARCHAR(255),
-//     department VARCHAR(255),
-//     team VARCHAR(255)
-//   )
-// `;
+const managerSQL = `
+  CREATE TABLE IF NOT EXISTS manager (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255),
+    position VARCHAR(255),
+    company VARCHAR(255),
+    department VARCHAR(255),
+    team VARCHAR(255)
+  )
+`;
 
-//     name TEXT UNIQUE -?
-// const projectSQL = `
-//   CREATE TABLE IF NOT EXISTS project (
-//     id INTEGER PRIMARY KEY AUTOINCREMENT,
-//     name TEXT,
-//     description TEXT,
-//     status TEXT,
-//     finishDate TEXT,
-//     project_ifc INTEGER,
-//     FOREIGN KEY (project_ifc) REFERENCES ifc(id)
-//   )
-// `;
+// name TEXT UNIQUE -?
+const projectSQL = `
+  CREATE TABLE IF NOT EXISTS project (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    description TEXT,
+    status TEXT,
+    finishDate TEXT,
+    project_ifc INTEGER,
+    FOREIGN KEY (project_ifc) REFERENCES ifc(id)
+  )
+`;
 
-// const todoSQL = `
-//   CREATE TABLE IF NOT EXISTS todo (
-//     id INTEGER PRIMARY KEY AUTOINCREMENT,
-//     content VARCHAR(255),
-//     writer INTEGER,
-//     ifc INTEGER,
-//     manager INTEGER,
-//     createDate DATE,
-//     deadline DATE,
-//     priority TEXT CHECK(priority IN ('LOW', 'Medium', 'High')),
-//     FOREIGN KEY (IFC) REFERENCES ifc(id),
-//     FOREIGN KEY (manager) REFERENCES manager(id)
-//   )
-// `;
+const todoSQL = `
+  CREATE TABLE IF NOT EXISTS todo (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content VARCHAR(255),
+    writer INTEGER,
+    ifc INTEGER,
+    manager INTEGER,
+    createDate DATE,
+    deadline DATE,
+    priority TEXT CHECK(priority IN ('LOW', 'Medium', 'High')),
+    FOREIGN KEY (IFC) REFERENCES ifc(id),
+    FOREIGN KEY (manager) REFERENCES manager(id)
+  )
+`;
 
 // ifc file path
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const filePath = path.join(__dirname, '../../sampleIFC/HNS-CTL-MOD-EST-001.ifc');
 
-// function setupIfcDatabase() {
-//     db.exec(ifcSQL);
-//     console.log('IFC Table created or already exists.');
-// }
+function setupIfcDatabase() {
+    db.exec(ifcSQL);
+    console.log('IFC Table created or already exists.');
+}
 
 function insertIfcSQL() {
   try {
@@ -256,10 +256,10 @@ function deleteProject(id: number) {
 //   });
 // }
 
-// function setupProjectDatabase() {
-//   db.exec(projectSQL);
-//   console.log('Project Table created or already exists.');
-// }
+function setupProjectDatabase() {
+  db.exec(projectSQL);
+  console.log('Project Table created or already exists.');
+}
 
 function insertProject() {
   try {
@@ -360,12 +360,6 @@ function closeDatabase() {
 
 function main() {
   try {
-    // setupIfcDatabase();
-    // insertIfcSQL();
-    // setupProjectDatabase();
-    // insertProject();
-    // selectProject(11);
-    // selectProjects();
 
   } catch (error) {
     console.error('An error occurred:', error);
