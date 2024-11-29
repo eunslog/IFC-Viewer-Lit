@@ -22,12 +22,19 @@ Manager.init();
 // }
 
 const projectsManager = new ProjectsManager();
+projectsManager.loadProjects();
 let panel: BUI.Panel;
 
 
 export default (components: OBC.Components) => {
   
   const [modelsList] = CUI.tables.modelsList({ components });
+  // const [modelsList] = CUI.tables.modelsList({
+  //   components,
+  //   tags: {schema: true, viewDefinition: true},
+  //   actions: { download: false, visibility: false, dispose: false }
+  // });
+
   const [relationsTree] = CUI.tables.relationsTree({
     components,
     models: [],
@@ -63,7 +70,7 @@ export default (components: OBC.Components) => {
                 <bim-label icon="mingcute:building-5-line">${project.name}</bim-label>
                 <bim-button style="flex:0;" @click=${() => loadIFCModel(project.project_ifc)}
                  icon="mage:box-3d-fill" label="Load">
-                 </bim-button>
+                </bim-button>
               </div>
             `
           )}

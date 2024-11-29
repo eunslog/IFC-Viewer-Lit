@@ -10,6 +10,7 @@ const app: Application = express();
 const port: number = 3000;
 const db = new Database('testDB.db');
 
+
 app.use(express.json());
 app.use(cors());
 
@@ -76,6 +77,18 @@ app.get('/api/ifc/:id', (req: Request, res: Response) => {
     console.error("Error fetching IFC:", err);
     res.status(500).json({ error: "Failed to fetch IFC" });
   }
+});
+
+// get Manager info
+app.get('/api/manager/info', (_req: Request, res: Response) => {
+  try {
+    const selectProjectSQL = db.prepare("SELECT id, name, project_ifc FROM manager");
+    const projects = selectProjectSQL.all();
+    console.log('projects simple info: ', projects);
+    res.json(projects);
+  } catch (err) {
+    console.error("Error fetching projects: ", err);
+    res.status(500).json({ error: "Failed to fetch projects" });  }
 });
 
 

@@ -21,18 +21,17 @@ export class ProjectsManager {
   list: IProject[] = [];
 
   constructor() {
-    this.loadProjects();
+    // this.loadProjects();
   }
 
   async loadProjects() {
     try {
-      // load proejct List
+      // Load project list
       const projectResponse = await fetch('http://localhost:3000/api/projects/simple');
       if (!projectResponse.ok) {
         throw new Error("Failed to fetch projects");
       }
       const projectRows: ProjectRow[] = await projectResponse.json();
-      console.log("projectRows:", projectRows);
       for (const row of projectRows) {
         const projectData: IProject = {
           id: row.id,
