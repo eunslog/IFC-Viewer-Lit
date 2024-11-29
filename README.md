@@ -5,7 +5,7 @@
 IFC 파일을 웹 환경에서 시각화하고 관리할 수 있는 3D 뷰어 애플리케이션입니다. 
 
 
-Open BIM App Templates인 https://github.com/thatOpen/engine_templates를 기반으로 개발되었습니다.
+Open BIM App Templates인 https://github.com/thatOpen/engine_templates 를 기반으로 개발되었습니다.
 
 
 > IFC(Industry Foundation Classes)
