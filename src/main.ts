@@ -13,11 +13,13 @@ import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import clipEdges from "./components/Toolbars/Sections/ClipEdges";
 import hiderPanel from "./components/Panels/Sections/Hider";
+import ToDo from './components/classes/TodoCard';
 
 
 BUI.Manager.init();
 
 const components = new OBC.Components();
+
 const worlds = components.get(OBC.Worlds);
 
 const world = worlds.create<
@@ -76,6 +78,13 @@ classifier.list.CustomSelections = {};
 // IfcStreamer
 const fragmentIfcLoader  = components.get(OBC.IfcLoader);
 await fragmentIfcLoader.setup();
+// await fragmentIfcLoader.setup({
+//   autoSetWasm: false,
+//   wasm: {
+//     path: "/node_modules/web-ifc/",
+//     absolute: true,
+//   }
+// })
 
 const excludedCats = [
   WEBIFC.IFCTENDONANCHOR,
@@ -231,6 +240,7 @@ function updateHiderPanel() {
 
 const projectInformationPanel = projectInformation(components);
 const elementDataPanel = elementData(components);
+const ToDoPanel = ToDo(components);
 
 const app = document.getElementById("app") as BUI.Grid;
 
@@ -404,6 +414,17 @@ const leftPanel = BUI.Component.create(() => {
   `;
 });
 
+const rightPanel = BUI.Component.create(() => {
+  return BUI.html`
+    <bim-panel>
+      ${ToDoPanel}
+      ${elementDataPanel}
+    </bim-panel>
+  `;
+});
+
+
+
 // control leftPanel size
 let isResizing = false;
 let initialMouseX = 0;
@@ -451,6 +472,7 @@ leftPanel.addEventListener('mousemove', (event) => {
 
 
 
+
 app.layouts = {
   main: {
     template: `
@@ -477,13 +499,13 @@ viewportGrid.layouts = {
   },
   second: {
     template: `
-      "empty elementDataPanel" 1fr
-      "toolbar elementDataPanel" auto
+      "empty rightPanel" 1fr
+      "toolbar rightPanel" auto
       /1fr 24rem
     `,
     elements: {
       toolbar,
-      elementDataPanel,
+      rightPanel,
     },
   },
 };
