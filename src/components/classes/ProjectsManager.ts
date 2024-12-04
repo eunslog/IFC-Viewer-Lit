@@ -19,9 +19,9 @@ interface IfcRow {
 export class ProjectsManager {
 
   list: IProject[] = [];
+  private modelUUIDMap: Map<number, string> = new Map();
 
   constructor() {
-    // this.loadProjects();
   }
 
   async loadProjects() {
@@ -45,19 +45,6 @@ export class ProjectsManager {
     } catch (err) {
       console.error("Error loading projects from API:", err);
     }
-  }
-
-  filterProjects(value: string) {
-    console.log("this val: ", value);
-    const filteredProjects = this.list.filter((project) => {
-      return project.name.toLowerCase().includes(value.toLocaleLowerCase())
-    })
-    return filteredProjects
-  }
-
-  newProject(data: IProject) {
-    this.list.push(data);
-    return data
   }
 
   async loadIFC(ifcId: number) {
@@ -89,6 +76,33 @@ export class ProjectsManager {
       console.error("Error loading IFC data:", error);
       return null;
     }
+  }
+
+
+
+  addModelUUID(ifcId: number, modelUUID: string) {
+    this.modelUUIDMap.set(ifcId, modelUUID);
+  }
+
+  getModelUUID(ifcId: number): string | undefined {
+    return this.modelUUIDMap.get(ifcId);
+  }
+
+  removeModelUUID(ifcId: number) {
+    this.modelUUIDMap.delete(ifcId);
+  }
+
+  filterProjects(value: string) {
+    console.log("this val: ", value);
+    const filteredProjects = this.list.filter((project) => {
+      return project.name.toLowerCase().includes(value.toLocaleLowerCase())
+    })
+    return filteredProjects
+  }
+
+  newProject(data: IProject) {
+    this.list.push(data);
+    return data
   }
 
   

@@ -5,7 +5,7 @@ import * as BUI from "@thatopen/ui";
 
 export default (components: OBC.Components, world: OBC.World) => {
   const clipper = components.get(OBC.Clipper);
-  clipper.enabled = true;
+  clipper.enabled = false;
 
   const edges = components.get(OBF.ClipEdges);
   clipper.Type = OBF.EdgesPlane;
@@ -80,7 +80,7 @@ export default (components: OBC.Components, world: OBC.World) => {
   return BUI.Component.create<BUI.PanelSection>(() => {
     return BUI.html`
       <bim-panel-section label="Clipping Controls" icon="mdi:content-cut" collapsed>
-        <bim-checkbox label="Clipper enabled" checked 
+        <bim-checkbox label="Clipper enabled" 
           @change="${({ target }: { target: BUI.Checkbox }) => {
             clipper.enabled = target.value;
             edges.visible = target.value;
