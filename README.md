@@ -35,13 +35,6 @@ Open BIM App Templates인 https://github.com/thatOpen/engine_templates 를 기�
 ---
 
 ### Usage
+nodejs 및 vite 동시 실행
 
-1. nodejs 서버 실행
-
-   
-    node dist/app.js
-
-2. viewer 실행
-
-   
-    npm run dev
+npm run dev
