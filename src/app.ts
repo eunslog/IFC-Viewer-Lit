@@ -2,7 +2,7 @@ import express, { Application, Request, Response } from "express";
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
-import Database from "better-sqlite3";
+import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 
 
@@ -45,6 +45,18 @@ app.get('/api/projects/simple', (_req: Request, res: Response) => {
   } catch (err) {
     console.error("Error fetching projects: ", err);
     res.status(500).json({ error: "Failed to fetch projects" });  }
+});
+  
+// get project
+app.get('/api/projects/manager', (_req: Request, res: Response) => {
+  try {
+    const selectManagerSQL = db.prepare("SELECT name, position FROM manager");
+    const managers = selectManagerSQL.all();
+    console.log('managers: ', managers);
+    res.json(managers);
+  } catch (err) {
+    console.error("Error fetching managers: ", err);
+    res.status(500).json({ error: "Failed to fetch managers" });  }
 });
   
 
@@ -92,6 +104,34 @@ app.get('/api/manager/info', (_req: Request, res: Response) => {
 });
 
 
+// create todo
+app.post('/api/todo', (req: Request, res: Response) => {
+  try {
+    const { description, manager, deadline, priority } = req.body;
+    
+    const insertTodoSQL = db.prepare(`
+      INSERT INTO todo (content, manager, createDate, deadline, priority)
+      VALUES (?, ?, datetime('now'), ?, ?)
+    `);
+
+    const result = insertTodoSQL.run(
+      description,
+      manager,
+      deadline,
+      priority
+    );
+
+    console.log('Todo created:', result);
+    res.status(201).json({ 
+      message: "Todo created successfully", 
+      id: result.lastInsertRowid 
+    });
+  } catch (err) {
+    console.error("Error creating todo:", err);
+    res.status(500).json({ error: "Failed to create todo" });
+  }
+});
+
 
 const ifcSQL = `
   CREATE TABLE IF NOT EXISTS ifc (
@@ -125,20 +165,35 @@ const projectSQL = `
   )
 `;
 
-const todoSQL = `
-  CREATE TABLE IF NOT EXISTS todo (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    content VARCHAR(255),
-    writer INTEGER,
-    ifc INTEGER,
-    manager INTEGER,
-    createDate DATE,
-    deadline DATE,
-    priority TEXT CHECK(priority IN ('LOW', 'Medium', 'High')),
-    FOREIGN KEY (IFC) REFERENCES ifc(id),
-    FOREIGN KEY (manager) REFERENCES manager(id)
-  )
+const todoSQL  = `
+CREATE TABLE IF NOT EXISTS todo (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  content VARCHAR(255),
+  writer INTEGER,
+  project_ifc INTEGER,
+  manager INTEGER,
+  createDate DATE,
+  deadline DATE,
+  priority TEXT CHECK(priority IN ('LOW', 'Medium', 'High')),
+  FOREIGN KEY (project_ifc) REFERENCES ifc(id),
+  FOREIGN KEY (manager) REFERENCES manager(id)
+)
 `;
+
+// const todoSQL = `
+//   CREATE TABLE IF NOT EXISTS todo (
+//     id INTEGER PRIMARY KEY AUTOINCREMENT,
+//     content VARCHAR(255),
+//     writer INTEGER,
+//     ifc INTEGER,
+//     manager INTEGER,
+//     createDate DATE,
+//     deadline DATE,
+//     priority TEXT CHECK(priority IN ('LOW', 'Medium', 'High')),
+//     FOREIGN KEY (IFC) REFERENCES ifc(id),
+//     FOREIGN KEY (manager) REFERENCES manager(id)
+//   )
+// `;
 
 // ifc file path
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -219,40 +274,43 @@ function deleteProject(id: number) {
   }
 }
 
-// async function setupManagerDatabase() {
-//   return new Promise<void>((resolve, reject) => {
-  
-//     db.run(managerSQL, (err: Error | null) => {
-//       if (err) {
-//         console.error(err.message);
-//         reject(err);
-//       } else {
-//         console.log('Manager Table created or already exists');
-//         resolve();
-//       }
-//     });
-//   });
-// }
+function setupManagerDatabase() {
+  try {
+    db.prepare("DROP TABLE IF EXISTS manager").run();
 
-// async function insertManager() {
-//   return new Promise<void>((resolve, reject) => {
+    db.prepare(managerSQL).run();
+  } catch (error) {
+    console.error('Error setting up manager database:', error);
+  }
+}
 
-//     const insertManagaerSQL = `
-//       INSERT INTO manager (name, position, company)
-//       VALUES ("seo", "intern", "kepcoenc")
-//     `;
-  
-//     db.run(insertManagaerSQL, (err: Error | null) => {
-//       if (err) {
-//         console.error(err.message);
-//         reject(err);
-//       } else {
-//         console.log('Manager insert Row added to the table');
-//         resolve();
-//       }
-//     });
-//   });
-// }
+function insertManager(name: string, position:string, company:string, department:string, team: string) {
+  try {
+      const insertManagerSQL = `
+        INSERT INTO manager (name, position, company, department, team)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      db.prepare(insertManagerSQL).run(name, position, company, department, team);
+      console.log("Project inserted into the database.");
+    } catch (err) {
+      console.error('Error inserting project:', err);
+    }
+}
+
+
+function deleteManager(id: number) {
+  try {
+    const deleteManagerSQL = db.prepare("DELETE FROM manager WHERE id = ?");
+    const row = deleteManagerSQL.run(id);
+    if (row) {
+      console.log('Retrieved row:', row);
+    } else {
+      console.log('No row found with the given ID.');
+    }
+  } catch (err) {
+    console.error('Error deleting Manager:', err);
+  }
+}
 
 // async function selectManager() {
 //   return new Promise<void>((resolve, reject) => {
@@ -316,55 +374,15 @@ function selectProjects() {
 }
   
 
+function setupTodoDatabase() {
+  try {
+    db.prepare("DROP TABLE IF EXISTS todo").run();
 
-// async function setupTodoDatabase() {
-//   return new Promise<void>((resolve, reject) => {
-  
-//     db.run(todoSQL, (err: Error | null) => {
-//       if (err) {
-//         console.error(err.message);
-//         reject(err);
-//       } else {
-//         console.log('Todo Table created or already exists');
-//         resolve();
-//       }
-//     });
-//   });
-// }
-
-// async function insertTodo() {
-//   return new Promise<void>((resolve, reject) => {
-//     const insertTodoSQL = `
-//       INSERT INTO todo (content, writer, ifc, manager, createDate, deadline, priority)
-//       VALUES ("todo", 1, 1, 1, datetime('now'), datetime('now'), 'LOW')
-//     `;
-  
-//     db.run(insertTodoSQL, (err: Error | null) => {
-//       if (err) {
-//         console.error(err.message);
-//         reject(err);
-//       } else {
-//         console.log('Todo insert Row added to the table');
-//         resolve();
-//       }
-//     });
-//   });
-// }
-
-// async function selectTodo() {
-//   return new Promise<void>((resolve, reject) => {
-//     const selectTodoSQL = `SELECT * FROM todo WHERE id = ?`;
-//     db.get(selectTodoSQL, 1, (err: Error | null, row: any) => {
-//       if (err) {
-//         console.error(err.message);
-//         reject(err);
-//       } else {
-//         console.log('Retrieved row:', row);
-//         resolve();
-//       }
-//     });
-//   });
-// }
+    db.prepare(todoSQL).run();
+  } catch (error) {
+    console.error('Error setting up todo database:', error);
+  }
+}
 
 function closeDatabase() {
   db.close();
@@ -373,6 +391,18 @@ function closeDatabase() {
 
 function main() {
   try {
+
+    setupTodoDatabase();
+
+    // insertManager("Kim Wonsam", "Team Leader", "Kepcoenc", "Digital Transformation Department", "Data Management Team");
+    // insertManager("Choi Yeonghui", "General Manager", "Kepcoenc", "Digital Transformation Department", "Data Management Team");
+    // insertManager("Jeon Hyeseon", "Senior Manager", "Kepcoenc", "Digital Transformation Department", "Data Management Team");
+    // insertManager("Lee Choonghyeon", "Senior Manager", "Kepcoenc", "Digital Transformation Department", "Data Management Team");
+    // insertManager("Baek Ilhong", "Senior Manager", "Kepcoenc", "Digital Transformation Department", "Data Management Team");
+    // insertManager("Oh Hyeontaek", "Senior Manager", "Kepcoenc", "Digital Transformation Department", "Data Management Team");
+    // insertManager("Gwak Iseo", "Staff", "Kepcoenc", "Digital Transformation Department", "Data Management Team");
+    // insertManager("Seo Youngeun", "Intern", "Kepcoenc", "Digital Transformation Department", "Data Management Team");
+
 
   } catch (error) {
     console.error('An error occurred:', error);
