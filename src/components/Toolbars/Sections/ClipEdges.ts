@@ -12,7 +12,7 @@ export default (components: OBC.Components, world: OBC.World) => {
 
   const highlighter = components.get(OBF.Highlighter);
 
-  // clipping style
+  // Clipping style
   const blueFill = new THREE.MeshBasicMaterial({ color: "lightblue", side: THREE.DoubleSide });
   const blueLine = new THREE.LineBasicMaterial({ color: "blue" });
   const blueOutline = new THREE.MeshBasicMaterial({
@@ -28,7 +28,7 @@ export default (components: OBC.Components, world: OBC.World) => {
     });
   };
 
-  // apply clipping
+  // Apply clipping
   const fragments = components.get(OBC.FragmentsManager);
   fragments.onFragmentsLoaded.add(model => {
     applyClippingStyles(fragments);
@@ -56,7 +56,7 @@ export default (components: OBC.Components, world: OBC.World) => {
     }
   };
 
-  // create clipping plane
+  // Create clipping plane
   const appContainer = document.getElementById("app");
   if (appContainer) {
     appContainer.ondblclick = () => {
@@ -68,7 +68,7 @@ export default (components: OBC.Components, world: OBC.World) => {
     console.error("Not found appContainer");
   }
 
-  // delete clipping plane
+  // Delete clipping plane
   window.onkeydown = (event) => {
     if (event.code === "Delete" || event.code === "Backspace") {
       if (clipper.enabled) {

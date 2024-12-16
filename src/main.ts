@@ -17,8 +17,9 @@ import clipEdges from "./components/Toolbars/Sections/ClipEdges";
 import measurement from "./components/Toolbars/Sections/Measurement";
 import placeMarker from "./components/Toolbars/Sections/PlaceMarker";
 import hiderPanel from "./components/Panels/Sections/Hider";
-import ToDo from './components/classes/TodoCard';
+import ToDo from "./components/classes/TodoCard";
 import PanelResizer from "./components/Panels/PanelResizer";
+import { ProjectsManager } from "./components/classes/ProjectsManager";
 
 
 // Initialize BUI
@@ -27,6 +28,7 @@ BUI.Manager.init();
 // Initialize core components
 const components = new OBC.Components();
 const worlds = components.get(OBC.Worlds);
+const projectsManager = new ProjectsManager();
 
 // Create and setup world
 const world = worlds.create<
@@ -36,7 +38,7 @@ const world = worlds.create<
 >();
 world.name = "Main";
 
-// Scene setup
+// Setup Scene
 world.scene = new OBC.SimpleScene(components);
 world.scene.setup();
 world.scene.three.background = null;
@@ -50,7 +52,7 @@ const viewport = BUI.Component.create<BUI.Viewport>(() => {
   `;
 });
 
-// Renderer setup
+// Setup Renderer
 world.renderer = new OBF.PostproductionRenderer(components, viewport);
 const { postproduction } = world.renderer;
 
@@ -192,10 +194,10 @@ function updateHiderPanel() {
 }
 
 
-
-const projectInformationPanel = projectInformation(components);
+await projectsManager.loadIFCFiles();
+const projectInformationPanel = projectInformation(components, projectsManager);
 const elementDataPanel = elementData(components);
-const ToDoPanel = ToDo(components);
+const ToDoPanel = ToDo(components, projectsManager);
 
 // Setup UI components
 const app = document.getElementById("app") as BUI.Grid;

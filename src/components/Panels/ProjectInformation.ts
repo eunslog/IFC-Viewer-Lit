@@ -7,11 +7,9 @@ import { Manager } from "@thatopen/ui";
 
 Manager.init();
 
-const projectsManager = new ProjectsManager();
-projectsManager.loadProjects();
 let panel: BUI.Panel;
 
-export default (components: OBC.Components) => {
+export default (components: OBC.Components, projectsManager: ProjectsManager) => {
 
   const worlds = components.get(OBC.Worlds);
   const loadedModels: Record<number, string> = {};
@@ -40,7 +38,7 @@ export default (components: OBC.Components) => {
         const world = components.get(OBC.Worlds).list.values().next().value;
         world.scene.three.add(model);
 
-        // add model uuid
+        // Add model uuid
         projectsManager.addModelUUID(ifcId, model.uuid);
         loadedModels[ifcId] = model.uuid;
         console.log(`Model loaded with UUID: ${model.uuid}`);
@@ -53,9 +51,27 @@ export default (components: OBC.Components) => {
     }
   };
 
-  // Delete model in world (not yet modelsList)
-  const deleteIFCModel = (ifcId: number) => {
+  // Delete model (not yet modelsList)
+  const deleteIFCModel = async (ifcId: number) => {
+    if (!confirm("데이터베이스에서 삭제하시겠습니까?")) return;
+
     try {
+      const response = await fetch(`http://localhost:3000/api/ifc/${ifcId}`, {
+        method: "DELETE",
+      });
+  
+      if (response.ok) {
+        console.log(`IFC ID ${ifcId} successfully deleted from the database.`);
+        alert(`데이터베이스에서 삭제되었습니다.`);
+        refreshIFCFiles();      
+      } 
+      else {
+        const errorText = await response.text();
+        console.error("IFC 삭제 실패:", errorText);
+        alert("IFC 파일 삭제에 실패하였습니다.");
+      }
+
+      // Delete from window
       const modelUUID = projectsManager.getModelUUID(ifcId);
       if (!modelUUID) {
         console.warn(`Not Found UUID for ifc ID: ${ifcId}`);
@@ -79,34 +95,17 @@ export default (components: OBC.Components) => {
     }
   };
 
-  // Get project List from sqlite database
-  const getProjectList = () => {
-    if (projectsManager.list.length > 0) {
-      return BUI.html`
-        <div>
-          ${projectsManager.list.map(
-            (project) => BUI.html`
-              <div style="display: flex; gap: 0.375rem; margin-bottom: 0.5rem;">
-                <bim-label icon="mingcute:building-5-line">${project.name}</bim-label>
-                <bim-button style="flex:0;" 
-                @click=${() => {
-                    loadIFCModel(project.project_ifc);
-                  }}                 
-                  icon="mage:box-3d-fill" label="Load">
-                </bim-button>
-                <bim-button style="flex:0;" 
-                @click=${() => {
-                  deleteIFCModel(project.project_ifc);
-                 }}
-                 icon="mage:box-3d-fill" label="Delete">
-                 </bim-button>
-              </div>
-            `
-          )}
-        </div>
-      `;
-    } else {
-      return BUI.html`<div>No projects available.</div>`;
+
+  const getIFCFilesList = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/api/ifcs/name");
+      if (!response.ok) {
+        throw new Error("Failed to fetch IFC files");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching IFC files:", error);
+      return [];
     }
   };
 
@@ -115,30 +114,70 @@ export default (components: OBC.Components) => {
     relationsTree.queryString = input.value;
   };
 
-
-  panel = BUI.Component.create<BUI.Panel>(() => {
-    return BUI.html`
-      <bim-panel>
-        <bim-panel-section label="IFC Files" icon="material-symbols:list">
-          ${getProjectList()}
-        </bim-panel-section>
-        <bim-panel-section label="Loaded Models" icon="mage:box-3d-fill">
-          ${modelsList}
-        </bim-panel-section>
-        <bim-panel-section label="Spatial Structures" icon="ph:tree-structure-fill">
-          <div style="display: flex; gap: 0.375rem;">
-            <bim-text-input @input=${search} vertical placeholder="Search..." debounce="200"></bim-text-input>
-            <bim-button style="flex: 0;" 
-            @click=${() => (relationsTree.expanded = !relationsTree.expanded)} 
-            icon="eva:expand-fill"
-            ></bim-button>
-          </div>
-          ${relationsTree}
-        </bim-panel-section>
-        ${groupings(components)}
-      </bim-panel>
+  const [createdPanel, updateState] = BUI.Component.create<BUI.Panel, { content: BUI.TemplateResult }>(
+    (file) => {
+      return BUI.html`
+        <bim-panel>
+          <bim-panel-section label="IFC Files" icon="material-symbols:list">
+            ${file.content}
+          </bim-panel-section>
+          <bim-panel-section label="Loaded Models" icon="mage:box-3d-fill">
+            ${modelsList}
+          </bim-panel-section>
+          <bim-panel-section label="Spatial Structures" icon="ph:tree-structure-fill">
+            <div style="display: flex; gap: 0.375rem;">
+              <bim-text-input @input=${search} vertical placeholder="Search..." debounce="200"></bim-text-input>
+              <bim-button style="flex: 0;" 
+                @click=${() => (relationsTree.expanded = !relationsTree.expanded)}
+                icon="eva:expand-fill"
+              ></bim-button>
+            </div>
+            ${relationsTree}
+          </bim-panel-section>
+          ${groupings(components)}
+        </bim-panel>
+      `;
+    },
+    { content: BUI.html`<div>Loading...</div>` } 
+  );
+  
+  panel = createdPanel;
+  
+  // Update IFC files list
+  const refreshIFCFiles = async () => {
+    const ifcFiles = await getIFCFilesList();
+    const content = BUI.html`
+      <div>
+        ${ifcFiles.length > 0
+          ? ifcFiles.map(
+              (file: { id: number; name: string }) => BUI.html`
+                <div style="display: flex; gap: 0.375rem; margin-bottom: 0.5rem;">
+                  <bim-label icon="mingcute:building-5-line">${file.name}</bim-label>
+                  <bim-button
+                    style="flex:0;"
+                    @click=${() => loadIFCModel(file.id)}
+                    icon="mage:box-3d-fill"
+                    label="Load"
+                  ></bim-button>
+                  <bim-button
+                    style="flex:0;"
+                    @click=${() => deleteIFCModel(file.id)}
+                    icon="fluent:delete-28-filled"
+                    label="Delete"
+                  ></bim-button>
+                </div>
+              `
+            )
+          : BUI.html`<div>No projects available.</div>`}
+      </div>
     `;
-  });
+    updateState({ content });
+  };
+  
+  refreshIFCFiles();
+  
+  window.addEventListener("ifcSaved", refreshIFCFiles);
+  
 
   return panel;
 };

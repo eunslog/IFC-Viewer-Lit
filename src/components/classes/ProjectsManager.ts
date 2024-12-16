@@ -1,44 +1,36 @@
-import { IProject, ProjectStatus } from "./Project"
-
-interface ProjectRow {
-  id: number;
-  name: string;
-  description: string;
-  status: ProjectStatus;
-  finishDate: string;
-  project_ifc: number;
-}
-
 interface IfcRow {
   id: number;
   name: string;
   content: Uint8Array;
 }
 
+interface IfcBasicInfo {
+  id: number;
+  name: string;
+}
 
 export class ProjectsManager {
 
-  list: IProject[] = [];
-  private modelUUIDMap: Map<number, string> = new Map();
+  list: IfcBasicInfo[] = [];
+  modelUUIDMap: Map<number, string> = new Map();
 
   constructor() {
   }
 
-  async loadProjects() {
+  async loadIFCFiles() {
     try {
-      // Load project list
-      const projectResponse = await fetch('http://localhost:3000/api/projects/simple');
-      if (!projectResponse.ok) {
-        throw new Error("Failed to fetch projects");
+      // Load ifc files list
+      const ifcResponse = await fetch('http://localhost:3000/api/ifcs/name');
+      if (!ifcResponse.ok) {
+        throw new Error("Failed to fetch ifcs");
       }
-      const projectRows: ProjectRow[] = await projectResponse.json();
-      for (const row of projectRows) {
-        const projectData: IProject = {
+      const ifcRows: IfcBasicInfo[] = await ifcResponse.json();
+      for (const row of ifcRows) {
+        const ifcInfo: IfcBasicInfo = {
           id: row.id,
           name: row.name,
-          project_ifc: row.project_ifc
         };
-        this.newProject(projectData);
+        this.newProject(ifcInfo);
       }
       console.log("Projects loaded from API successfully.");
       
@@ -56,7 +48,7 @@ export class ProjectsManager {
       }
       const ifcRow: IfcRow = await ifcResponse.json();
 
-      // check ifcRow.content exists
+      // Check ifcRow.content exists
       if (!ifcRow.content || ifcRow.content.length === 0) {
         console.error("Not found IFC data found.");
         return null;
@@ -88,6 +80,17 @@ export class ProjectsManager {
     return this.modelUUIDMap.get(ifcId);
   }
 
+  getIfcIdByModelUUID(modelUUID: string): number | undefined {
+    for (const [ifcId, uuid] of this.modelUUIDMap.entries()) {
+      console.log('here uuid:', modelUUID);
+      if (uuid === modelUUID) {
+        console.log('this uuid', uuid);
+        return ifcId;
+      }
+    }
+    return undefined;
+  }
+
   removeModelUUID(ifcId: number) {
     this.modelUUIDMap.delete(ifcId);
   }
@@ -100,7 +103,7 @@ export class ProjectsManager {
     return filteredProjects
   }
 
-  newProject(data: IProject) {
+  newProject(data: IfcBasicInfo) {
     this.list.push(data);
     return data
   }
@@ -125,7 +128,7 @@ export class ProjectsManager {
     reader.addEventListener("load", () => {
       const json = reader.result
       if (!json) { return }
-      const projects: IProject[] = JSON.parse(json as string)
+      const projects: IfcRow[] = JSON.parse(json as string)
       for (const project of projects) {
         try {
           this.newProject(project)

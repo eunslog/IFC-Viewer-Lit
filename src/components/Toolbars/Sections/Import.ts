@@ -25,6 +25,40 @@ const askForFile = (extension: string) => {
   });
 };
 
+// Save file to DB
+const saveToDB = async (file: File, content: Uint8Array | string) => {
+  if (!confirm("db에 저장하시겠습니까?")) return;
+
+  try {
+    const payload = {
+      name: file.name,
+      content: content instanceof Uint8Array ? Array.from(content) : content,
+    };
+
+    const response = await fetch("http://localhost:3000/api/ifc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      alert(`DB에 저장되었습니다.`);
+
+      const event = new CustomEvent("ifcSaved");
+      window.dispatchEvent(event);
+    } else {
+      const errorText = await response.text();
+      console.error("DB 저장 실패:", errorText);
+      alert("DB 저장에 실패하였습니다.");
+    }
+  } catch (error) {
+    console.error("DB 저장 중 오류 발생:", error);
+    alert("DB 저장 중 오류가 발생하였습니다.");
+  }
+};
+
 export default (components: OBC.Components) => {
   const [loadBtn] = CUI.buttons.loadIfc({ components });
   loadBtn.label = "IFC";
@@ -39,7 +73,11 @@ export default (components: OBC.Components) => {
   const loadFragments = async () => {
     const fragmentsZip = await askForFile(".zip");
     if (!fragmentsZip) return;
+
     const zipBuffer = await fragmentsZip.arrayBuffer();
+    const uint8ArrayBuffer = new Uint8Array(zipBuffer);
+    await saveToDB(fragmentsZip, uint8ArrayBuffer);
+
     const zip = new Zip();
     await zip.loadAsync(zipBuffer);
     const geometryBuffer = zip.file("geometry.frag");
@@ -117,7 +155,7 @@ export default (components: OBC.Components) => {
     input.click();
   }
 
-  
+
   function download(file: File) {
     const link = document.createElement("a");
     link.href = URL.createObjectURL(file);
@@ -130,9 +168,10 @@ export default (components: OBC.Components) => {
   async function streamIfc() {
     const ifcFile = await askForFile(".ifc");
     if (!ifcFile) return;
-  
+
     const data = new Uint8Array(await ifcFile.arrayBuffer());
-  
+    await saveToDB(ifcFile, data);
+
     try {
       const model = await fragmentIfcLoader.load(data);
       model.name = ifcFile.name.replace(".ifc", "");
