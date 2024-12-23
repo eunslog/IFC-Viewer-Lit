@@ -1,11 +1,10 @@
 import * as BUI from "@thatopen/ui";
 import * as OBC from "@thatopen/components";
-import { FragmentIdMap } from '@thatopen/fragments';
 import placeMarker from '../Toolbars/Sections/PlaceMarker';
 import * as OBF from "@thatopen/components-front";
 import { ProjectsManager } from "./ProjectsManager";
 import * as THREE from "three";
-import Groupings from "../Panels/Sections/Groupings";
+
 
 export type ToDoPriority = "LOW" | "MEDIUM" | "HIGH";
 
@@ -19,43 +18,45 @@ export interface ToDo {
   manager: number;
   manager_name: string,
   manager_position: string,
-  fragmentMap: FragmentIdMap;
+  expressIDs: string;
   priority: ToDoPriority;
+  camera: { position: THREE.Vector3, target: THREE.Vector3, cameraType: string; };
 }
-
-interface Manager {
-  name: string;
-  position: string;
-}
-
 
 export default (components: OBC.Components, projectsManager: ProjectsManager) => {
 
   const fragmentsManager = components.get(OBC.FragmentsManager);
   const world = components.get(OBC.Worlds).list.values().next().value;
+  const { camera } = world;
 
   const highlighter = components.get(OBF.Highlighter);
-  // highlighter.setup({ world });
-  // highlighter.zoomToSelection = true;
 
-  const placeMarkerOnSelected = placeMarker(components, world);
+  highlighter.events.select.onHighlight.add(() => {
+    const selectedFragments = highlighter.selection.select;
+    const fragmentKeys = Object.keys(selectedFragments);
+    const fragmentID = fragmentKeys[0];
+    const fragment = fragmentsManager.list.get(fragmentID);
 
-  const onCardDeleteClick = new OBC.Event();
-  const onCardEditClick = new OBC.Event();
+   if (!fragment || !fragment.mesh || !fragment.mesh.parent) {
+     console.error("Fragment or its mesh/parent is not valid.");
+     return;
+   }
 
-  // highlighter.events.select.onHighlight.add((selection) => {
-  //     console.log('Highlight event triggered with selection:', selection);
-  // });
+   const modelUUID = fragment.mesh.parent?.uuid;
+   if (!modelUUID) {
+     console.error('Not found Model UUID');
+     return;
+   }
 
-  const handleEditClick = (e: Event) => {
-    e.stopPropagation();
-    onCardEditClick.trigger();
-  };
+   const ifcId = projectsManager.getIfcIdByModelUUID(modelUUID);
+   if (!ifcId) {
+     console.error('IFC ID not found for selected model');
+     return;
+   }
 
-  const handleDeleteClick = (e: Event) => {
-    e.stopPropagation();
-    onCardDeleteClick.trigger();
-  };
+    updateToDoList(ifcId);
+  });
+
 
   const handleCreateClick = async () => {
 
@@ -66,6 +67,11 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
     const selectedFragments = highlighter.selection.select;
     const fragmentKeys = Object.keys(selectedFragments);
+    const expressIDs = Object.values(selectedFragments);
+    const expressIDsArray = expressIDs.flat().map(set => Array.from(set));
+    const uniqueExpressIDs = [...new Set(expressIDsArray.flat())];
+  
+    const expressIDsJson = JSON.stringify(uniqueExpressIDs);
   
     if (fragmentKeys.length === 0) {
       console.error("Please select at least one fragment before creating a TODO.");
@@ -76,22 +82,22 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     const fragmentsManager = components.get(OBC.FragmentsManager);
   
     fragmentKeys.forEach((id) => {
-      const normalizedId = id.trim().toLowerCase();
-      if (fragmentsManager.list.has(normalizedId)) {
-        fragmentMap[id] = new Set([0]);
+      if (fragmentsManager.list.has(id)) {
+        const expressIds = selectedFragments[id];
+        if (expressIds instanceof Set) {
+          fragmentMap[id] = new Set(expressIds);
+        } else {
+          console.warn(`Fragment ID ${id} does not have valid values for Set.`);
+        }
       } else {
         console.warn(`Fragment ID ${id} is not valid or does not exist in fragmentsManager.`);
       }
     });
-  
+
     if (Object.keys(fragmentMap).length === 0) {
       console.error("No valid fragments found to include in TODO.");
       return;
     }
-  
-    console.log("Saving fragmentMap:", fragmentMap);
-    console.log("Available fragments in fragmentsManager.list:", Array.from(fragmentsManager.list.keys()));
-
 
     // Check Fragment, Model UUID
     const fragmentID = fragmentKeys[0];
@@ -114,13 +120,27 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       console.error('IFC ID not found for selected model');
       return;
     }
-  
-    // Check input
+
     if (!descriptionInput?.value.trim() || !deadlineInput?.value || !managerSelect?.value) {
       console.error("Please fill in all required fields.");
       return;
     }
-  
+
+    // Camera
+    const position = world.camera.three.position.clone();
+    
+    const direction = new THREE.Vector3();
+    world.camera.three.getWorldDirection(direction); 
+
+    const targetDistance = 10; 
+    const target = position.clone().add(direction.multiplyScalar(targetDistance));
+
+    const todoCamera = {
+        position,
+        target
+    };
+
+ 
     // Request TODO creation
     try {
       const requestBody = {
@@ -130,7 +150,8 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
         manager: parseInt(managerSelect.value),
         deadline: deadlineInput.value,
         priority: priorityDropdown?.value || "LOW",
-        fragmentMap: selectedFragments,
+        expressIDs: expressIDsJson,
+        camera: todoCamera
       };
   
       console.log("Request Body:", requestBody);
@@ -145,24 +166,22 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-  
-      const result = await response.json();
-      console.log("Todo created:", result);
-  
-      // Update TODO list
-      await updateToDoList();
-  
+      }  
+
+      await updateToDoList(ifcId)  
+
       if (descriptionInput) descriptionInput.value = '';
       if (managerSelect) managerSelect.value = '';
       if (deadlineInput) deadlineInput.value = '';
       if (priorityDropdown) priorityDropdown.value = 'LOW';
       highlighter.clear("select");
+
     } catch (error) {
       console.error("Error creating todo:", error);
     }
   };
   
+
   const getPriorityValue = (priority: string): number => {
     switch (priority.toUpperCase()) {
         case 'HIGH': return 3;
@@ -173,16 +192,20 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   };
 
 
-  const sortTodos = (todos: any[], sortBy: 'deadline' | 'priority') => {
+  const sortTodos = (todos: any[], sortBy: 'title' | 'deadline' | 'priority') => {
     const sortedTodos = [...todos];
     
-    if (sortBy === 'deadline') {
+    if(sortBy === 'title') {
+
+    }
+    else if (sortBy === 'deadline') {
         sortedTodos.sort((a, b) => {
             const dateA = new Date(a.deadline);
             const dateB = new Date(b.deadline);
             return dateA.getTime() - dateB.getTime();
         });
-    } else {
+    } 
+    else if (sortBy === 'priority') {
         sortedTodos.sort((a, b) => {
             const priorityA = getPriorityValue(a.priority);
             const priorityB = getPriorityValue(b.priority);
@@ -199,9 +222,28 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   };
 
 
-  const updateToDoList = async () => {
+  const updateToDoList = async (ifcId: number) => {
     try {
-        const response = await fetch('http://localhost:3000/api/todo');
+
+        const expressIDsResponse = await fetch(`http://localhost:3000/api/expressIDs/${ifcId}`);
+        if (!expressIDsResponse.ok) {
+          throw new Error(`HTTP error! status: ${expressIDsResponse.status}`);
+        }
+
+        const expressIdsJson = await expressIDsResponse.json();
+        placeMarker(components, world, expressIdsJson);
+
+
+        const selectedFragments = highlighter.selection.select;
+        const fragmentKeys = Object.keys(selectedFragments);
+        const fragmentID = fragmentKeys[0];
+    
+        const expressIDs = selectedFragments[fragmentID];
+        const expressIDsArray = Array.from(expressIDs); 
+        const selectedExpressIDs = new Set<number>(expressIDsArray);
+    
+
+        const response = await fetch(`http://localhost:3000/api/todo/${ifcId}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -215,7 +257,8 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
         }
 
         const sortedTodos = sortTodos(todos, 'deadline');
-        renderTodos(sortedTodos, todoListContainer);
+        renderTodos(sortedTodos, todoListContainer, selectedExpressIDs);
+
 
     } catch (error) {
         console.error('Error updating todo list:', error);
@@ -224,11 +267,25 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   };
 
 
-  const renderTodos = (todos: any[], container: HTMLElement) => {
+
+
+  const renderTodos = (todos: any[], container: HTMLElement, selectedExpressIDs: Set<number>) => {
+
+    container.innerHTML = '';
 
     // Sort dropdown
     const sortDropdown = document.createElement('bim-dropdown');
     sortDropdown.setAttribute('label', 'Sort By');
+
+    // Title option
+    const titleOption = document.createElement('bim-option');
+    titleOption.setAttribute('label', 'Title');
+    titleOption.id = 'title-sort';
+    titleOption.addEventListener('click', () => {
+      const sortedTodos = sortTodos(todos, 'title');
+      renderTodos(sortedTodos, container, selectedExpressIDs);
+    });
+    sortDropdown.appendChild(titleOption);
 
     // Deadline option
     const deadlineOption = document.createElement('bim-option');
@@ -236,7 +293,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     deadlineOption.id = 'deadline-sort';
     deadlineOption.addEventListener('click', () => {
       const sortedTodos = sortTodos(todos, 'deadline');
-      renderTodos(sortedTodos, container);
+      renderTodos(sortedTodos, container, selectedExpressIDs);
     });
     sortDropdown.appendChild(deadlineOption);
 
@@ -246,7 +303,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     priorityOption.id = 'priority-sort';
     priorityOption.addEventListener('click', () => {
         const sortedTodos = sortTodos(todos, 'priority');
-        renderTodos(sortedTodos, container);
+        renderTodos(sortedTodos, container, selectedExpressIDs);
     });
     sortDropdown.appendChild(priorityOption);
 
@@ -254,105 +311,112 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
     // Todos
     todos.forEach(todo => {
-      const todoSection = createTodoSection(todo);
+      const todoSection = createTodoSection(todo, selectedExpressIDs);
       container.appendChild(todoSection);
     });
   };
 
 
-  // const trackFragment = (todo: ToDo) => {
-  //   try {
-  //       console.log('Starting trackFragment with todo:', todo);
-        
-  //       highlighter.highlightByID('select', todo.fragmentMap, true, true);
-  //       console.log("Highlighting fragments:", todo.fragmentMap);
-
-  //       world.camera.fit(world.meshes, 1.2);
-
-
-
-  //   } catch (error) {
-  //       console.error('Error in trackFragment:', error);
-  //   }
-  // };
-
   const trackFragment = (todo: ToDo) => {
     try {
-      console.log('Starting trackFragment with todo:', todo);
   
       const highlighter = components.get(OBF.Highlighter);
-      const fragmentsManager = components.get(OBC.FragmentsManager);
-  
-      // Fragment UUID matching
-      const fragments: { [key: string]: Set<number> } = {};
-      const availableFragments = Array.from(fragmentsManager.list.keys()).map((id) => id.trim().toLowerCase());
-  
-      Object.keys(todo.fragmentMap).forEach((rawId) => {
-        const normalizedId = rawId.trim().toLowerCase();
-        if (availableFragments.includes(normalizedId)) {
-          fragments[rawId] = todo.fragmentMap[rawId];
-        } else {
-          console.warn(`Invalid UUID detected: ${rawId}`);
+      const fragmentsManager = components.get(OBC.FragmentsManager)
+
+      const expressIDsArray: number[][] = JSON.parse(todo.expressIDs);
+      const expressIDs: Set<number> = new Set<number>();
+
+      if (!Array.isArray(expressIDsArray)) {
+        console.error("not array:", expressIDsArray);
+        return; 
+      }
+
+      expressIDsArray.forEach((idArray) => {
+        if (!Array.isArray(idArray)) {
+          expressIDs.add(idArray); 
+          return; 
         }
+
+        idArray.forEach((id) => expressIDs.add(id));
+        console.log("this idArray:", idArray);
       });
-  
-      if (Object.keys(fragments).length === 0) {
-        console.error("No valid fragments to highlight.");
+    
+      const fragmentsGroup = fragmentsManager.groups.values().next().value; 
+      if (!fragmentsGroup) {
+        console.error("Not found fragments group.");
         return;
       }
-  
-      console.log('Fragments to highlight:', fragments);
-  
-      // Highlight fragments
-      highlighter.highlightByID('select', fragments, true);
-      console.log("Highlight applied successfully");
-  
-      // Camera focus on highlighted fragments
-      const center = new THREE.Vector3();
-      let count = 0;
-  
-      Object.keys(fragments).forEach((id) => {
-        const fragment = fragmentsManager.list.get(id);
-        if (!fragment?.mesh) {
-          console.warn(`Fragment with ID ${id} does not have a valid mesh.`);
-          return;
-        }
-  
-        const box = new THREE.Box3().setFromObject(fragment.mesh);
-        if (!box.isEmpty()) {
-          const fragmentCenter = new THREE.Vector3();
-          box.getCenter(fragmentCenter);
-          center.add(fragmentCenter);
-          count++;
-        }
-      });
-  
-      if (count > 0) {
-        center.divideScalar(count);
-  
-        const camera = components.get(OBC.SimpleCamera);
-        const offset = 10;
-  
-        camera.controls.setLookAt(
-          center.x + offset,
-          center.y + offset,
-          center.z + offset,
-          center.x,
-          center.y,
-          center.z,
-          true
-        );
-      }
+
+      const fragmentMap = fragmentsGroup.getFragmentMap(expressIDs);
+
+      highlighter.highlightByID('select', fragmentMap)
+        .catch((error) => {
+          console.error("Error highlighting fragments:", error);
+        });
+
+      const cameraData = typeof todo.camera === 'string' ? JSON.parse(todo.camera) : todo.camera;
+    
+      world.camera.controls.setLookAt(
+        cameraData.position.x,
+        cameraData.position.y,
+        cameraData.position.z,
+        cameraData.target.x,
+        cameraData.target.y,
+        cameraData.target.z,
+        true
+      );
+
+
+      
     } catch (error) {
       console.error('Error in trackFragment:', error);
     }
   };
     
 
+  const deleteTodo = async (todo: ToDo) => {
+      if (!confirm("데이터베이스에서 삭제하시겠습니까?")) return;
+      try {
+        const response = await fetch(`http://localhost:3000/api/todo/${todo.id}`, {
+          method: "DELETE",
+        });
+        console.log("response:", response);
 
-  const createTodoSection = (todo: ToDo) => {
+      if (response.ok) {
+        alert(`데이터베이스에서 삭제되었습니다.`);
+        updateToDoList(todo.ifc);
+      } 
+      else
+      {
+        const errorText = await response.text();
+        console.error("ToDo 삭제 실패:", errorText);
+        alert("ToDo 삭제에 실패하였습니다.");
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+  }
+    catch {
+      console.log("Error deleteing todo");
+    }
+  }
+
+
+  const createTodoSection = (todo: ToDo, selectedExpressIDs: Set<number>) => {
 
     const todoSection = document.createElement('div');
+
+    const todoExpressIDsArray: number[][] = JSON.parse(todo.expressIDs);
+    const todoExpressIDs = new Set(todoExpressIDsArray.flat());
+
+    if ([...todoExpressIDs].some(id => selectedExpressIDs.has(id))) {
+        todoSection.style.border = '2px solid yellow'; 
+        todoSection.style.padding = '10px'; 
+        todoSection.style.margin = '10px 0'; 
+        todoSection.style.borderRadius = '5px'; 
+    } else {
+        todoSection.style.border = '2px solid transparent'; 
+    }
+        
     const panelSection = document.createElement('bim-panel-section');
   
     panelSection.setAttribute('label', todo.content);
@@ -378,18 +442,25 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     const trackButton = document.createElement('bim-button');
     trackButton.setAttribute('label', 'Track');
     trackButton.id = `track-${todo.id}`;
-    trackButton.addEventListener('click', () => {
+    trackButton.addEventListener('click',function handleClick() {
       trackFragment(todo);
     });
     panelSection.appendChild(trackButton);
     todoSection.appendChild(panelSection);
   
+    // Delete Button
+    const deletButton = document.createElement('bim-button');
+    deletButton.setAttribute('label', 'Delete');
+    deletButton.id = `delete-${todo.id}`;
+    deletButton.addEventListener('click',function handleClick() {
+      deleteTodo(todo);
+    });
+    panelSection.appendChild(deletButton);
   
     return todoSection;
   };
     
   
-
   const createManagerDropdown = () => {
 
     const dropdown = BUI.Component.create(() => {
@@ -422,17 +493,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   const fragment = BUI.Component.create(() => {
     
     const managerDropdown = createManagerDropdown();
-
-    const initTodoList = () => {
-      const todoListContainer = document.querySelector<HTMLElement>('#todo-list');
-      if (todoListContainer) {
-        updateToDoList();
-      } else {
-        setTimeout(initTodoList, 100);
-      }
-    };
-
-    setTimeout(initTodoList, 0);
 
     return BUI.html`
       <bim-panel-section label="Todo" icon="mdi:clipboard-list">
