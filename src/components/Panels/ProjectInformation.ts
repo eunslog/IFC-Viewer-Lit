@@ -41,7 +41,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
         // Add model uuid
         projectsManager.addModelUUID(ifcId, model.uuid);
         loadedModels[ifcId] = model.uuid;
-        console.log(`Model loaded with UUID: ${model.uuid}`);
 
       } else {
         console.error("Project or IFC data not found for ifc ID:", ifcId);
