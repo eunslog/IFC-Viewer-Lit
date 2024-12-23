@@ -149,11 +149,10 @@ app.delete('/api/ifc/:id', (req: Request, res: Response) => {
 // Create todo
 app.post('/api/todo', (req: Request, res: Response) => {
   try {
-    const { content, writer, ifc, manager, deadline, priority, fragmentMap } = req.body;
+    const { content, writer, ifc, manager, deadline, priority, expressIDs } = req.body;
+    const camera = JSON.stringify(req.body.camera);
     
-    console.log('Received Priority:', priority);
     console.log('Request Body:', req.body);
-
 
     const insertTodoSQL = db.prepare(`
       INSERT INTO todo (
@@ -164,8 +163,9 @@ app.post('/api/todo', (req: Request, res: Response) => {
         createDate, 
         deadline, 
         priority,
-        fragmentMap
-      ) VALUES (?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'), ?, ?, ?)
+        expressIDs,
+        camera
+      ) VALUES (?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'), ?, ?, ?, ?)
     `);
 
     const result = insertTodoSQL.run(
@@ -175,7 +175,8 @@ app.post('/api/todo', (req: Request, res: Response) => {
       manager,
       deadline,
       priority,
-      JSON.stringify(fragmentMap)
+      expressIDs,
+      camera
     );
 
     console.log('Todo created:', result);
@@ -189,17 +190,47 @@ app.post('/api/todo', (req: Request, res: Response) => {
   }
 });
 
-// Get TodoList
+// Get todo list
+app.get('/api/todo/:id', (req: Request, res: Response) => {
+  try {
+    const ifcId = parseInt(req.params.id, 10);
+    if (isNaN(ifcId)) {
+      res.status(400).json({ error: "Invalid IFC ID" });
+      return;
+    }
+
+    const selectTodoSQL = db.prepare(`
+      SELECT 
+        todo.*,
+        manager.name as manager_name,
+        manager.position as manager_position
+      FROM todo
+      LEFT JOIN manager ON todo.manager = manager.id
+      WHERE todo.ifc = ?
+    `);
+
+    const todos = selectTodoSQL.all(ifcId);
+    console.log('todos info: ', todos);
+    res.json(todos);
+  } 
+   catch (err) {
+    console.error("Error fetching todos:", err); 
+    res.status(500).json({ error: "Failed to fetch todos" });
+  }
+});
+
+// Get todo list of a model
 app.get('/api/todo', (req: Request, res: Response) => {
   try {
+    
     const selectTodoSQL = db.prepare(`
-    SELECT 
-      todo.*,
-      manager.name as manager_name,
-      manager.position as manager_position
-    FROM todo
-    LEFT JOIN manager ON todo.manager = manager.id
-  `);
+      SELECT 
+        todo.*,
+        manager.name as manager_name,
+        manager.position as manager_position
+      FROM todo
+      LEFT JOIN manager ON todo.manager = manager.id
+    `);
 
     const todos = selectTodoSQL.all();
     console.log('todos info: ', todos);
@@ -211,6 +242,66 @@ app.get('/api/todo', (req: Request, res: Response) => {
   }
 });
 
+// Delete todo
+app.delete('/api/todo/:id', (req: Request, res: Response) => {
+  try {
+    const todoId = parseInt(req.params.id, 10); 
+    if (isNaN(todoId)) {
+      res.status(400).json({ error: "Invalid Todo ID" });
+      return;
+    }
+
+    const deleteTodoSQL = db.prepare(`
+      DELETE
+      FROM todo
+      WHERE id = ?
+      `);
+
+    const result = deleteTodoSQL.run(todoId);
+
+    if (result.changes > 0) {
+      console.log(`Todo with ID ${todoId} deleted successfully.`);
+      res.status(200).json({ message: "Todo deleted successfully." });
+    } else {
+      console.warn(`Todo with ID ${todoId} not found.`);
+      res.status(404).json({ error: "Todo not found." });
+    }
+  } catch (err) {
+    console.error("Error deleting Todo:", err);
+    res.status(500).json({ error: "Failed to delete Todo" });
+  }
+
+});
+
+
+// Get expressIDs from ifc
+app.get('/api/expressIDs/:id', (req: Request, res: Response) => {
+  try {
+
+    const ifcId = parseInt(req.params.id, 10);
+    if (isNaN(ifcId)) {
+      res.status(400).json({ error: "Invalid IFC ID" });
+      return;
+    }
+
+    const selectExpressIDsSQL = db.prepare(`
+      SELECT 
+        expressIDs
+      FROM
+        todo
+      WHERE
+        todo.ifc = ?
+    `);
+
+    const expressIDS = selectExpressIDsSQL.all(ifcId);
+    console.log('expressIDs info: ', expressIDS);
+    res.json(expressIDS);
+  } 
+   catch (err) {
+    console.error("Error fetching expressIDs:", err); 
+    res.status(500).json({ error: "Failed to fetch expressIDs" });
+  }
+});
 
 
 
@@ -244,7 +335,8 @@ const todoSQL  = `
     createDate TEXT,
     deadline TEXT,
     priority TEXT CHECK(priority IN ('LOW', 'MEDIUM', 'HIGH')),
-    fragmentMap TEXT,
+    expressIDs TEXT,
+    camera TEXT,
     FOREIGN KEY (ifc) REFERENCES ifc(id),
     FOREIGN KEY (manager) REFERENCES manager(id)
   )
@@ -403,13 +495,14 @@ function deleteManager(id: number) {
 //   });
 // }
 
-  
 
 function setupTodoDatabase() {
   try {
     db.prepare("DROP TABLE IF EXISTS todo").run();
 
     db.prepare(todoSQL).run();
+
+    console.log("complete setup Todo Database.");
   } catch (error) {
     console.error('Error setting up todo database:', error);
   }
