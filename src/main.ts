@@ -135,8 +135,6 @@ const highlighter = components.get(OBF.Highlighter);
 highlighter.setup({ world });
 highlighter.zoomToSelection = true;
 
-const placeMarkerOnSelected = placeMarker(components, world);
-
 const fragmentsManager = components.get(OBC.FragmentsManager);
 fragmentsManager.onFragmentsLoaded.add((model) => {
   if (world.scene) world.scene.three.add(model);
@@ -165,7 +163,6 @@ fragmentsManager.onFragmentsLoaded.add(async (model) => {
 
   updateHiderPanel(); 
   }
-
 });
 
 fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
@@ -235,12 +232,6 @@ const toolbar = BUI.Component.create(() => {
       ${selection(components, world)}
       ${clipEdges(components, world)}
       ${measurement(components, world, viewport)}
-      <bim-button @click=${placeMarkerOnSelected} 
-        label="Place Marker" 
-        icon="mdi:map-marker" 
-        tooltip-title="Place Marker" 
-        tooltip-text="Places a marker on the selected fragment.">
-      </bim-button>
     </bim-toolbar>
   `;
 });

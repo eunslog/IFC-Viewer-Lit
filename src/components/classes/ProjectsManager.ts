@@ -32,7 +32,6 @@ export class ProjectsManager {
         };
         this.newProject(ifcInfo);
       }
-      console.log("Projects loaded from API successfully.");
       
     } catch (err) {
       console.error("Error loading projects from API:", err);
@@ -82,9 +81,7 @@ export class ProjectsManager {
 
   getIfcIdByModelUUID(modelUUID: string): number | undefined {
     for (const [ifcId, uuid] of this.modelUUIDMap.entries()) {
-      console.log('here uuid:', modelUUID);
       if (uuid === modelUUID) {
-        console.log('this uuid', uuid);
         return ifcId;
       }
     }
@@ -96,7 +93,6 @@ export class ProjectsManager {
   }
 
   filterProjects(value: string) {
-    console.log("this val: ", value);
     const filteredProjects = this.list.filter((project) => {
       return project.name.toLowerCase().includes(value.toLocaleLowerCase())
     })
