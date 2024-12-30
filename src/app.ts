@@ -190,16 +190,66 @@ app.post('/api/todo', (req: Request, res: Response) => {
   }
 });
 
-// Get todo list
+// Get sorted and filtered todo list
 app.get('/api/todo/:id', (req: Request, res: Response) => {
   try {
+    console.log("----- sorted and filtered todo list -----");
     const ifcId = parseInt(req.params.id, 10);
     if (isNaN(ifcId)) {
-      res.status(400).json({ error: "Invalid IFC ID" });
+      res.status(400).json({ error: 'Invalid IFC ID' });
       return;
     }
 
-    const selectTodoSQL = db.prepare(`
+    const sortBy = req.query.sortBy as 'Description' | 'Deadline' | 'Priority' | undefined;
+    let filterByPriority = req.query.filter as string | undefined;
+    const filterByManager = req.query.manager ? parseInt(req.query.manager as string, 10) : undefined;
+
+    const priorityList = filterByPriority
+      ? filterByPriority.split(',').filter(priority => ['HIGH', 'MEDIUM', 'LOW'].includes(priority))
+      : [];
+
+    let orderByClause = 'ORDER BY createDate ASC';
+    if (sortBy) {
+      switch (sortBy) {
+        case 'Description':
+          orderByClause = 'ORDER BY content COLLATE NOCASE ASC';
+          break;
+        case 'Deadline':
+          orderByClause = 'ORDER BY deadline ASC';
+          break;
+        case 'Priority':
+          orderByClause = `
+            ORDER BY 
+              CASE 
+                WHEN priority = 'HIGH' THEN 3
+                WHEN priority = 'MEDIUM' THEN 2
+                WHEN priority = 'LOW' THEN 1
+                ELSE 0
+              END DESC,
+              deadline ASC
+          `;
+          break;
+        default:
+          res.status(400).json({ error: 'Invalid sort criteria' });
+          return;
+      }
+    }
+
+    let filterClause = '';
+    const queryParams: (number | string)[] = [ifcId];
+
+    if (priorityList.length > 0) {
+      const placeholders = priorityList.map(() => '?').join(', ');
+      filterClause += `AND priority IN (${placeholders}) `;
+      queryParams.push(...priorityList);
+    }
+
+    if (filterByManager) {
+      filterClause += 'AND todo.manager = ? ';
+      queryParams.push(filterByManager);
+    }
+
+    const selectTodoSQL = `
       SELECT 
         todo.*,
         manager.name as manager_name,
@@ -207,40 +257,85 @@ app.get('/api/todo/:id', (req: Request, res: Response) => {
       FROM todo
       LEFT JOIN manager ON todo.manager = manager.id
       WHERE todo.ifc = ?
-    `);
+      ${filterClause}
+      ${orderByClause}
+    `;
 
-    const todos = selectTodoSQL.all(ifcId);
-    console.log('todos info: ', todos);
+    const todos = db.prepare(selectTodoSQL).all(...queryParams);
+
+    console.log("sorted and filtered todoList: ", todos);
+
     res.json(todos);
-  } 
-   catch (err) {
-    console.error("Error fetching todos:", err); 
-    res.status(500).json({ error: "Failed to fetch todos" });
+  } catch (err) {
+    console.error('Error fetching sorted and filtered todos:', err);
+    res.status(500).json({ error: 'Failed to fetch sorted and filtered todos' });
   }
 });
 
-// Get todo list of a model
-app.get('/api/todo', (req: Request, res: Response) => {
+// Edit Todo
+app.put('/api/todo/:id', (req: Request, res: Response) => {
   try {
-    
-    const selectTodoSQL = db.prepare(`
-      SELECT 
-        todo.*,
-        manager.name as manager_name,
-        manager.position as manager_position
-      FROM todo
-      LEFT JOIN manager ON todo.manager = manager.id
-    `);
+    console.log("----- Updating todo -----");
 
-    const todos = selectTodoSQL.all();
-    console.log('todos info: ', todos);
-    res.json(todos);
-  } 
-   catch (err) {
-    console.error("Error fetching todos:", err); 
-    res.status(500).json({ error: "Failed to fetch todos" });
+    console.log("Received PUT request:");
+    console.log("Params:", req.params);
+    console.log("Body:", req.body);
+
+    const todoId = parseInt(req.params.id, 10);
+    if (isNaN(todoId)) {
+      res.status(400).json({ error: 'Invalid Todo ID' });
+      return;
+    }
+
+    const { content, manager, priority, deadline } = req.body;
+
+    if (!content || typeof content !== 'string') {
+      res.status(400).json({ error: 'Invalid content' });
+      return;
+    }
+
+    if (!manager || typeof manager !== 'number') {
+      res.status(400).json({ error: 'Invalid manager ID' });
+      return;
+    }
+
+    if (!priority || !['HIGH', 'MEDIUM', 'LOW'].includes(priority)) {
+      res.status(400).json({ error: 'Invalid priority value' });
+      return;
+    }
+
+    if (!deadline || isNaN(Date.parse(deadline))) {
+      res.status(400).json({ error: 'Invalid deadline' });
+      return;
+    }
+
+    const updateTodoSQL = `
+      UPDATE todo
+      SET 
+        content = ?,
+        manager = ?,
+        priority = ?,
+        deadline = ?
+      WHERE id = ?
+    `;
+
+    const result = db.prepare(updateTodoSQL).run(content, manager, priority, deadline, todoId);
+
+    if (result.changes === 0) {
+      res.status(404).json({ error: 'Todo not found or no changes made' });
+      return;
+    }
+
+    console.log("Todo updated successfully:", { id: todoId, content, manager, priority, deadline });
+
+    res.status(200).json({ message: 'Todo updated successfully' });
+  } catch (error) {
+    console.error('Error updating todo:', error);
+    res.status(500).json({ error: 'Failed to update todo' });
   }
 });
+
+
 
 // Delete todo
 app.delete('/api/todo/:id', (req: Request, res: Response) => {

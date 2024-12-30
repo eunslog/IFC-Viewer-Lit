@@ -15,7 +15,6 @@ import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import clipEdges from "./components/Toolbars/Sections/ClipEdges";
 import measurement from "./components/Toolbars/Sections/Measurement";
-import placeMarker from "./components/Toolbars/Sections/PlaceMarker";
 import hiderPanel from "./components/Panels/Sections/Hider";
 import ToDo from "./components/classes/TodoCard";
 import PanelResizer from "./components/Panels/PanelResizer";
