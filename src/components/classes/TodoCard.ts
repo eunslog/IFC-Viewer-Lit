@@ -64,18 +64,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
     updateToDoList(ifcId);
   });
-
-
-  const getCurrentIfcId = (): number | undefined => {
-    if (currentIfcId !== undefined) {
-      return currentIfcId;
-    } else {
-      console.error("No IFC ID available. Please select a fragment.");
-      return 0;
-    }
-  };
-  
-  
   
 
   const handleCreateClick = async () => {
@@ -584,7 +572,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   };
 
 
-  const createPriorityFilterContainer = (ifcId: number) => {
+  const createPriorityFilterContainer = () => {
 
     const container = document.createElement('div');
   
@@ -618,7 +606,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
         } else {
           selectedPriorities.delete(priority as ToDoPriority);
         }
-        updateToDoList(ifcId);
+        updateToDoList(currentIfcId);
       });
   
       priorityFilterContainer.appendChild(checkbox);
@@ -648,7 +636,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   
           currentFilterByManager = parseInt(selectedManager, 10);
   
-          updateToDoList(ifcId);
+          updateToDoList(currentIfcId);
         });
       });
   
@@ -664,7 +652,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       option.setAttribute('label', sortKey.charAt(0).toUpperCase() + sortKey.slice(1));
       option.addEventListener('click', () => {
         currentSortBy = sortKey as 'Description' | 'Deadline' | 'Priority';
-        updateToDoList(ifcId);
+        updateToDoList(currentIfcId);
       });
       sortDropdown.appendChild(option);
     });
@@ -680,9 +668,8 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
   const fragment = BUI.Component.create(() => {
       
-    const ifcId = getCurrentIfcId() || 0;
     const managerDropdown = createManagerDropdown();
-    const filterContainer = createPriorityFilterContainer(ifcId);
+    const filterContainer = createPriorityFilterContainer();
 
     return BUI.html`
       <bim-panel-section label="Todo" icon="mdi:clipboard-list">
