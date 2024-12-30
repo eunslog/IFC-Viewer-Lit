@@ -27,7 +27,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
   const fragmentsManager = components.get(OBC.FragmentsManager);
   const world = components.get(OBC.Worlds).list.values().next().value;
-  const { camera } = world;
 
   const highlighter = components.get(OBF.Highlighter);
 
