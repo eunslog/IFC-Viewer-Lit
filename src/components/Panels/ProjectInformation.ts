@@ -5,6 +5,7 @@ import groupings from "./Sections/Groupings";
 import { ProjectsManager } from "../classes/ProjectsManager";
 import { Manager } from "@thatopen/ui";
 
+
 Manager.init();
 
 let panel: BUI.Panel;
@@ -12,6 +13,7 @@ let panel: BUI.Panel;
 export default (components: OBC.Components, projectsManager: ProjectsManager) => {
 
   const worlds = components.get(OBC.Worlds);
+
   const loadedModels: Record<number, string> = {};
 
   const [modelsList] = CUI.tables.modelsList({
@@ -28,13 +30,13 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   });
   relationsTree.preserveStructureOnFilter = true;
 
-
   const loadIFCModel = async (ifcId: number) => {
     try {
       const ifcLoader = components.get(OBC.IfcLoader);
       const project = await projectsManager.loadIFC(ifcId);
       if (project) {
-        const model = await ifcLoader.load(project);
+        const model = await ifcLoader.load(project.content);
+        model.name = project.name;
         const world = components.get(OBC.Worlds).list.values().next().value;
         world.scene.three.add(model);
 
@@ -60,7 +62,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       });
   
       if (response.ok) {
-        console.log(`IFC ID ${ifcId} successfully deleted from the database.`);
         alert(`데이터베이스에서 삭제되었습니다.`);
         refreshIFCFiles();      
       } 
@@ -73,7 +74,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       // Delete from window
       const modelUUID = projectsManager.getModelUUID(ifcId);
       if (!modelUUID) {
-        console.warn(`Not Found UUID for ifc ID: ${ifcId}`);
+        console.warn(`Not found UUID for ifc ID: ${ifcId}`);
         return;
       }
 
@@ -94,6 +95,8 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     }
   };
 
+
+  
 
   const getIFCFilesList = async () => {
     try {
