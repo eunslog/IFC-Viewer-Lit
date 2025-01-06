@@ -59,9 +59,12 @@ export class ProjectsManager {
       for (let i = 0; i < decodedContent.length; i++) {
         ifc_data[i] = decodedContent.charCodeAt(i);
       }
-
-      return ifc_data;
-      }
+      
+      return {
+        name: ifcRow.name,
+        content: ifc_data, 
+      };
+    }
     }
     catch (error) {
       console.error("Error loading IFC data:", error);

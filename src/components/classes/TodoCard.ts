@@ -4,22 +4,24 @@ import placeMarker from '../Toolbars/Sections/PlaceMarker';
 import * as OBF from "@thatopen/components-front";
 import { ProjectsManager } from "./ProjectsManager";
 import * as THREE from "three";
+import { clearMarkers } from '../Toolbars/Sections/PlaceMarker';
 
 
 export type ToDoPriority = "LOW" | "MEDIUM" | "HIGH";
 
 export interface ToDo {
   id: number,
-  content: string;
+  title: string,
+  description: string,
   writer: number,
   ifc: number,
-  createDate: Date;
-  deadline: Date;
-  manager: number;
+  createDate: Date,
+  deadline: Date,
+  manager: number,
   manager_name: string,
   manager_position: string,
-  expressIDs: string;
-  priority: ToDoPriority;
+  expressIDs: string,
+  priority: ToDoPriority,
   camera: { position: THREE.Vector3, target: THREE.Vector3, cameraType: string; };
 }
 
@@ -30,13 +32,19 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
   const highlighter = components.get(OBF.Highlighter);
 
-  let currentSortBy: 'Description' | 'Deadline' | 'Priority' = 'Deadline';
+  let currentSortBy: 'Title' | 'Deadline' | 'Priority' = 'Deadline';
   const selectedPriorities = new Set<ToDoPriority>();
   let currentFilterByManager: number = 0;
   let currentIfcId: number = 0;
-  
 
-  highlighter.events.select.onHighlight.add(() => {
+
+  fragmentsManager.onFragmentsDisposed.add(() => {
+    const world = components.get(OBC.Worlds).list.values().next().value;
+    clearMarkers(components, world);
+    highlighter.clear();
+  });
+
+  highlighter.events.select.onHighlight.add(async () => {
     const selectedFragments = highlighter.selection.select;
     const fragmentKeys = Object.keys(selectedFragments);
     const fragmentID = fragmentKeys[0];
@@ -62,16 +70,42 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
     currentIfcId = ifcId;
 
-    updateToDoList(ifcId);
+    if (currentIfcId > 0) {
+      const managerDropdown = await createManagerDropdown();
+      const managerDropdownContainer = document.querySelector<HTMLElement>('#manager-dropdown-container');
+      const filters = await createFilters();
+      const filterContainer = document.querySelector<HTMLElement>('#filter-container');
+
+      if (!filters) {
+        console.error('filters container not found');
+        return;
+      }
+
+      if (managerDropdownContainer) {
+        managerDropdownContainer.innerHTML = '';
+        managerDropdownContainer.appendChild(managerDropdown);
+      } else {
+        console.error('ManagerDropdown container not found');
+      }
+
+      if (filterContainer) {
+        filterContainer.innerHTML = '';
+        filterContainer.appendChild(filters);
+      } else {
+        console.error('filterContainer not found');
+      }
+        updateToDoList(currentIfcId);
+    }  
   });
   
 
   const handleCreateClick = async () => {
 
-    const descriptionInput = document.querySelector<HTMLInputElement>("<HTMLSelectElement>");
+    const titleInput = document.querySelector<HTMLInputElement>("#title-input");
+    const descriptionInput = document.querySelector<HTMLInputElement>("#description-input");
     const deadlineInput = document.querySelector<HTMLInputElement>("#deadline-input");
     const priorityDropdown = document.querySelector<HTMLSelectElement>("#priority");
-    const managerSelect = document.querySelector<HTMLSelectElement>("#manager-select");
+    const managerSelect = document.querySelector<HTMLSelectElement>("#managerDropdown");
 
     const selectedFragments = highlighter.selection.select;
     const fragmentKeys = Object.keys(selectedFragments);
@@ -129,9 +163,41 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       return;
     }
 
-    if (!descriptionInput?.value.trim() || !deadlineInput?.value || !managerSelect?.value) {
-      console.error("Please fill in all required fields.");
+    if (!titleInput?.value.trim())
+    {
+      alert("Please fill in title fields.");
       return;
+    }
+    else if (!descriptionInput?.value.trim())
+    {
+      alert("Please fill in all required fields.");
+      return;
+    }  
+    else if  (!managerSelect?.value)
+    {
+      alert("Please select manager.");
+      return;
+    }
+    else if (!deadlineInput?.value)
+    {
+      alert("Please select deadline.");
+      return;
+    }
+    else if (!priorityDropdown?.value)
+    {
+      alert("Please select priority.");
+      return;
+    }
+
+    // Check title length
+    else if (titleInput.value.length > 20) {
+      alert("Please do not exceed 20 characters for the title.");
+      return; 
+    }
+    // Check description length
+    else if (descriptionInput.value.length > 50) {
+      alert("Please do not exceed 50 characters for the description.");
+      return; 
     }
 
     // Camera
@@ -152,7 +218,8 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     // Request TODO creation
     try {
       const requestBody = {
-        content: descriptionInput.value,
+        title: titleInput.value,
+        description: descriptionInput.value,
         writer: 1,
         ifc: ifcId,
         manager: parseInt(managerSelect.value),
@@ -176,6 +243,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
       await updateToDoList(ifcId)  
 
+      if (titleInput) titleInput.value = '';
       if (descriptionInput) descriptionInput.value = '';
       if (managerSelect) managerSelect.value = '';
       if (deadlineInput) deadlineInput.value = '';
@@ -190,6 +258,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
   const updateToDoList = async (ifcId: number) => {
     try {
+
       const expressIDsResponse = await fetch(`http://localhost:3000/api/expressIDs/${ifcId}`);
       if (!expressIDsResponse.ok) {
         throw new Error(`HTTP error! status: ${expressIDsResponse.status}`);
@@ -277,8 +346,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       container.appendChild(todoSection);
     });
   };
-    
-  
 
   const trackFragment = (todo: ToDo) => {
     try {
@@ -328,8 +395,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
         true
       );
 
-
-      
     } catch (error) {
       console.error('Error in trackFragment:', error);
     }
@@ -337,7 +402,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
 
   // Edit Todo
-  const editTodo = (todo: ToDo) => {
+  const editTodo = async (todo: ToDo) => {
     try {
       const todoSection = document.getElementById(`edit-${todo.id}`)?.parentElement?.parentElement;
 
@@ -348,16 +413,23 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
       todoSection.innerHTML = '';
 
-      // Content Input
-      const contentInput = document.createElement('bim-text-input');
-      contentInput.setAttribute('label', 'Content');
-      contentInput.value = todo.content;
-      todoSection.appendChild(contentInput);
+      // Title Input
+      const titleInput = document.createElement('bim-text-input');
+      titleInput.setAttribute('label', 'Title');
+      titleInput.value = todo.title;
+      todoSection.appendChild(titleInput);
+
+      // Description Input
+      const descriptionInput = document.createElement('bim-text-input');
+      descriptionInput.setAttribute('label', 'Description');
+      descriptionInput.value = todo.description;
+      todoSection.appendChild(descriptionInput);
 
       // Manager Dropdown
       const managerDropdown = document.createElement('bim-dropdown');
       managerDropdown.setAttribute('label', 'Manager');
-      fetch('http://localhost:3000/api/manager')
+
+      await fetch(`http://localhost:3000/api/managers/${currentIfcId}`)
         .then(response => response.json())
         .then(managers => {
           managers.forEach((manager: { id: number; name: string; position: string }) => {
@@ -366,8 +438,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
             option.setAttribute('value', manager.id.toString());
             managerDropdown.appendChild(option);
           });
-
-          managerDropdown.value = [todo.manager.toString()];
         });
       todoSection.appendChild(managerDropdown);
 
@@ -398,10 +468,11 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       saveButton.addEventListener('click', async () => {
         const updatedTodo = {
           ...todo,
-          content: contentInput.value,
-          manager: Array.isArray(managerDropdown.value)
-            ? parseInt(managerDropdown.value[0], 10)
-            : parseInt(managerDropdown.value, 10),
+          title: titleInput.value,
+          description: descriptionInput.value,
+          manager: managerDropdown.value && managerDropdown.value.length > 0
+          ? parseInt(managerDropdown.value[0], 10)
+          : parseInt(todo.manager.toString(), 10),
           priority: Array.isArray(priorityDropdown.value)
             ? (priorityDropdown.value[0] as ToDoPriority)
             : (priorityDropdown.value as ToDoPriority),
@@ -428,7 +499,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       });
       todoSection.appendChild(saveButton);
 
-      // Cancel Button
+      // Cancel button
       const cancelButton = document.createElement('bim-button');
       cancelButton.setAttribute('label', 'Cancel');
       cancelButton.addEventListener('click', () => {
@@ -471,22 +542,26 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   const createTodoSection = (todo: ToDo, selectedExpressIDs: Set<number>) => {
 
     const todoSection = document.createElement('div');
+    todoSection.style.padding = '0';
     const todoExpressIDsArray: number[][] = JSON.parse(todo.expressIDs);
     const todoExpressIDs = new Set(todoExpressIDsArray.flat());
 
     if ([...todoExpressIDs].some(id => selectedExpressIDs.has(id))) {
-        todoSection.style.border = '2px solid yellow'; 
-        todoSection.style.padding = '10px'; 
-        todoSection.style.margin = '10px 0'; 
-        todoSection.style.borderRadius = '5px'; 
-    } else {
-        todoSection.style.border = '2px solid transparent'; 
+      todoSection.style.border = '2px solid yellow'; 
+      todoSection.style.borderRadius = '5px'; 
     }
         
     const panelSection = document.createElement('bim-panel-section');
     panelSection.collapsed = true;
-    panelSection.setAttribute('label', todo.content);
+    panelSection.style.padding = '0rem';
+    panelSection.style.margin = '0rem';
+    panelSection.setAttribute('label', todo.title);
     panelSection.setAttribute('icon', 'mdi:card-text-outline');
+
+    // Description
+    const descriptionLabel = document.createElement('bim-label');
+    descriptionLabel.textContent = `Description: ${todo.description}`;
+    panelSection.appendChild(descriptionLabel);
   
     // Manager
     const managerLabel = document.createElement('bim-label');
@@ -508,7 +583,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     buttonContainer.style.display = 'flex';
     buttonContainer.style.gap = '10px';
   
-    // Track Button
+    // Track button
     const trackButton = document.createElement('bim-button');
     trackButton.setAttribute('label', 'Track');
     trackButton.id = `track-${todo.id}`;
@@ -517,7 +592,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     });
     buttonContainer.appendChild(trackButton);
 
-    // edit Button
+    // Edit button
     const editButton = document.createElement('bim-button');
     editButton.setAttribute('label', 'Edit');
     editButton.id = `edit-${todo.id}`;
@@ -526,7 +601,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     });
     buttonContainer.appendChild(editButton);
   
-    // Delete Button
+    // Delete button
     const deletButton = document.createElement('bim-button');
     deletButton.setAttribute('label', 'Delete');
     deletButton.id = `delete-${todo.id}`;
@@ -542,59 +617,55 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   };
     
   
-  const createManagerDropdown = () => {
+  const createManagerDropdown = async () => {
 
-    const dropdown = BUI.Component.create(() => {
-      return BUI.html`
-        <bim-dropdown id="manager-select" label="Manager"></bim-dropdown>
-      `;
-    });
-
-    // Update managers list
-    fetch('http://localhost:3000/api/manager')
-      .then(response => response.json())
-      .then(managers => {
-        dropdown.innerHTML = managers
-          .map((manager: { id: number, name: string, position: string }) => `
-            <bim-option 
-              label="${manager.name} [${manager.position}]" 
-              value="${manager.id}"
-            ></bim-option>
-          `)
-          .join('');
-      })
-      .catch(error => {
-        console.error('Error loading managers:', error);
+    const managerDropdown = document.createElement('bim-dropdown');
+    managerDropdown.setAttribute('label', 'Manager');
+    managerDropdown.setAttribute('id', 'managerDropdown');
+  
+    if (currentIfcId <= 0) {
+      console.warn("currentIfcId is not valid. Cannot load managers.");
+      return managerDropdown;
+    }
+  
+    try {
+      const response = await fetch(`http://localhost:3000/api/managers/${currentIfcId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const managers = await response.json();
+  
+      managers.forEach((manager: { id: number; name: string; position: string }) => {
+        const option = document.createElement('bim-option');
+        option.setAttribute('label', `${manager.name} [${manager.position}]`);
+        option.setAttribute('value', manager.id.toString());
+        managerDropdown.appendChild(option);
       });
-
-    return dropdown;
-
+    } catch (error) {
+      console.error('Error loading managers:', error);
+    }
+  
+    return managerDropdown;
+  
   };
 
 
-  const createPriorityFilterContainer = () => {
+  const createFilters = async () => {
 
     const container = document.createElement('div');
-  
-    // Filter By Label
-    const filterByLabel = document.createElement('bim-label');
-    filterByLabel.textContent = 'Filter by';
-    filterByLabel.style.fontWeight = 'bold';
-    filterByLabel.style.marginBottom = '1rem';
-    container.appendChild(filterByLabel);
 
     const priorityFilterContainer = document.createElement('div');
     priorityFilterContainer.style.marginBottom = '1rem';
     priorityFilterContainer.style.display = 'flex';
     priorityFilterContainer.style.gap = '10px';
 
-    // Priority Label
+    // Priority label
     const priorityLabel = document.createElement('bim-label');
     priorityLabel.textContent = 'Priority';
     priorityLabel.style.marginRight = '1rem';
     priorityFilterContainer.appendChild(priorityLabel);
   
-    // Priority Checkbox
+    // Priority checkbox
     ['HIGH', 'MEDIUM', 'LOW'].forEach(priority => {
       const checkbox = document.createElement('bim-checkbox');
       checkbox.label = priority;
@@ -612,14 +683,18 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       priorityFilterContainer.appendChild(checkbox);
     });
   
+
     container.appendChild(priorityFilterContainer);
-  
-    // Manager Dropdown
+
     const managerDropdown = document.createElement('bim-dropdown');
     managerDropdown.label = 'Manager';
     managerDropdown.style.marginBottom = '1rem';
+    if (!managerDropdown) {
+      console.error('ManagerDropdown not found');
+      return;
+    }
   
-    fetch('http://localhost:3000/api/manager')
+    fetch(`http://localhost:3000/api/managers/${currentIfcId}`)
       .then(response => response.json())
       .then(managers => {
         managers.forEach((manager: { id: number; name: string; position: string }) => {
@@ -640,27 +715,27 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
         });
       });
   
-    container.appendChild(managerDropdown);
-  
-    // Sort By - Sort Dropdown
+      container.appendChild(managerDropdown);
+
+    // Sort By - Sort dropdown
     const sortDropdown = document.createElement('bim-dropdown');
     sortDropdown.setAttribute('label', 'Sort By');
     sortDropdown.style.marginBottom = '1rem';
   
-    ['Description', 'Deadline', 'Priority'].forEach(sortKey => {
+    ['Title', 'Deadline', 'Priority'].forEach(sortKey => {
       const option = document.createElement('bim-option');
       option.setAttribute('label', sortKey.charAt(0).toUpperCase() + sortKey.slice(1));
       option.addEventListener('click', () => {
-        currentSortBy = sortKey as 'Description' | 'Deadline' | 'Priority';
+        currentSortBy = sortKey as 'Title' | 'Deadline' | 'Priority';
         updateToDoList(currentIfcId);
       });
       sortDropdown.appendChild(option);
     });
 
-
     container.appendChild(sortDropdown);
-  
+
     return container;
+  
   };
   
   
@@ -668,19 +743,22 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
   const fragment = BUI.Component.create(() => {
       
-    const managerDropdown = createManagerDropdown();
-    const filterContainer = createPriorityFilterContainer();
-
     return BUI.html`
-      <bim-panel-section label="Todo" icon="mdi:clipboard-list">
-        <bim-panel-section label="New Todo" icon="mdi:card-text">
+      <bim-panel-section id='todo-panel-section' label="Todo" icon="mdi:clipboard-list">
+        <bim-panel-section id="new-todo" label="New Todo" icon="mdi:card-text">
+          <bim-label>Title</bim-label>
+          <bim-text-input 
+            id="title-input" 
+            vertical 
+            placeholder="Please write a title. (20 character limit)">
+          </bim-text-input>
           <bim-label>Description</bim-label>
           <bim-text-input 
             id="description-input" 
             vertical 
-            placeholder="Please write a description.">
+            placeholder="Please write a description. (50 character limit)"> 
           </bim-text-input>
-            ${managerDropdown}
+          <div id="manager-dropdown-container"></div>          
           <bim-label>Deadline</bim-label>
           <bim-text-input 
             id="deadline-input" 
@@ -704,8 +782,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
           id="todo-list" 
           style="margin-top: 1rem;"
         >
-        <bim-panel-section label="Filters and Sorting">
-          ${filterContainer}
+        <bim-panel-section id ="filter-container" label="Filters">
         </bim-panel-section>
         <bim-panel-section id="todos" label="Todos">
         </bim-panel-section>        

@@ -60,7 +60,7 @@ app.get('/api/ifc/:id', (req: Request, res: Response) => {
   try {
     const ifcId = parseInt(req.params.id, 10);
     const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
-    const ifc = selectIFCSQL.get(ifcId) as { content: Buffer };
+    const ifc = selectIFCSQL.get(ifcId) as { content: Buffer, name: string };
 
     if (!ifc) {
       console.warn(`IFC data not found for id: ${ifcId}`);
@@ -72,6 +72,7 @@ app.get('/api/ifc/:id', (req: Request, res: Response) => {
       // Buffer to Base64 string
       const base64Content = ifc.content.toString('base64');
       const ifcResponse = {
+        name: ifc.name,
         content: base64Content,
       };    
       res.json(ifcResponse);  
@@ -149,14 +150,15 @@ app.delete('/api/ifc/:id', (req: Request, res: Response) => {
 // Create todo
 app.post('/api/todo', (req: Request, res: Response) => {
   try {
-    const { content, writer, ifc, manager, deadline, priority, expressIDs } = req.body;
+    const { title, description, writer, ifc, manager, deadline, priority, expressIDs } = req.body;
     const camera = JSON.stringify(req.body.camera);
     
     console.log('Request Body:', req.body);
 
     const insertTodoSQL = db.prepare(`
       INSERT INTO todo (
-        content, 
+        title,
+        description, 
         writer, 
         ifc, 
         manager, 
@@ -165,11 +167,12 @@ app.post('/api/todo', (req: Request, res: Response) => {
         priority,
         expressIDs,
         camera
-      ) VALUES (?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'), ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'), ?, ?, ?, ?)
     `);
 
     const result = insertTodoSQL.run(
-      content,
+      title,
+      description,
       writer,
       ifc,
       manager,
@@ -200,7 +203,7 @@ app.get('/api/todo/:id', (req: Request, res: Response) => {
       return;
     }
 
-    const sortBy = req.query.sortBy as 'Description' | 'Deadline' | 'Priority' | undefined;
+    const sortBy = req.query.sortBy as 'Title' | 'Deadline' | 'Priority' | undefined;
     let filterByPriority = req.query.filter as string | undefined;
     const filterByManager = req.query.manager ? parseInt(req.query.manager as string, 10) : undefined;
 
@@ -211,8 +214,8 @@ app.get('/api/todo/:id', (req: Request, res: Response) => {
     let orderByClause = 'ORDER BY createDate ASC';
     if (sortBy) {
       switch (sortBy) {
-        case 'Description':
-          orderByClause = 'ORDER BY content COLLATE NOCASE ASC';
+        case 'Title':
+          orderByClause = 'ORDER BY title COLLATE NOCASE ASC';
           break;
         case 'Deadline':
           orderByClause = 'ORDER BY deadline ASC';
@@ -287,10 +290,15 @@ app.put('/api/todo/:id', (req: Request, res: Response) => {
       return;
     }
 
-    const { content, manager, priority, deadline } = req.body;
+    const { title, description, manager, priority, deadline } = req.body;
 
-    if (!content || typeof content !== 'string') {
-      res.status(400).json({ error: 'Invalid content' });
+    if (!title || typeof title !== 'string') {
+      res.status(400).json({ error: 'Invalid title' });
+      return;
+    }
+
+    if (!description || typeof description !== 'string') {
+      res.status(400).json({ error: 'Invalid description' });
       return;
     }
 
@@ -312,21 +320,22 @@ app.put('/api/todo/:id', (req: Request, res: Response) => {
     const updateTodoSQL = `
       UPDATE todo
       SET 
-        content = ?,
+        title = ?,
+        description = ?,
         manager = ?,
         priority = ?,
         deadline = ?
       WHERE id = ?
     `;
 
-    const result = db.prepare(updateTodoSQL).run(content, manager, priority, deadline, todoId);
+    const result = db.prepare(updateTodoSQL).run(title, description, manager, priority, deadline, todoId);
 
     if (result.changes === 0) {
       res.status(404).json({ error: 'Todo not found or no changes made' });
       return;
     }
 
-    console.log("Todo updated successfully:", { id: todoId, content, manager, priority, deadline });
+    console.log("Todo updated successfully:", { id: todoId, title, description, manager, priority, deadline });
 
     res.status(200).json({ message: 'Todo updated successfully' });
   } catch (error) {
@@ -394,11 +403,77 @@ app.get('/api/expressIDs/:id', (req: Request, res: Response) => {
   } 
    catch (err) {
     console.error("Error fetching expressIDs:", err); 
-    res.status(500).json({ error: "Failed to fetch expressIDs" });
+    res.status(500).json({ error: "FailedR to fetch expressIDs" });
+  }
+});
+
+app.post('/api/ifc_manager', (req: Request, res: Response) => {
+  try {
+    const { ifcId, managerIds } = req.body;
+
+    const parsedIfcId = parseInt(ifcId, 10);
+
+    if (!parsedIfcId || !Array.isArray(managerIds)) {
+      return res.status(400).json({ error: "IFC ID and manager IDs are required." });
+    }
+
+    const insertManagerSQL = db.prepare(`
+      INSERT OR IGNORE INTO ifc_manager (ifcId, managerId)
+      VALUES (?, ?)
+    `);
+
+    for (const managerId of managerIds) {
+      insertManagerSQL.run(parsedIfcId, managerId);
+    }
+
+    res.status(201).json({ message: "Managers saved to IFC successfully." });
+  } catch (err) {
+    console.error("Error saving managers to IFC:", err);
+    res.status(500).json({ error: "Failed to save managers to IFC" });
   }
 });
 
 
+// Get managers from an ifc
+app.get('/api/managers/:id', (req: Request, res: Response) => {
+  try {
+
+
+    console.log("---------managers/:id-------------");
+
+    const ifcId = parseInt(req.params.id, 10);
+    if (isNaN(ifcId)) {
+      res.status(400).json({ error: "Invalid IFC ID" });
+      return;
+    }
+
+    const selectedManagersSQL = db.prepare(`
+      SELECT 
+        m.id, m.name, m.position
+      FROM
+        ifc_manager im
+      JOIN
+        manager m ON im.managerId = m.id
+      WHERE
+        im.ifcId = ?
+    `);
+
+    const requestSQL = db.prepare(`
+      SELECT * FROM ifc_manager WHERE ifcId = ?;
+    `)
+
+    console.log('this ifc_manager:', requestSQL.all(ifcId));
+
+    const managers = selectedManagersSQL.all(ifcId);
+    console.log('this managers: ', managers);
+    res.json(managers);
+  } 
+   catch (err) {
+    console.error("Error fetching managers:", err); 
+    res.status(500).json({ error: "Failed to fetch managers" });
+  }
+});
+  
 
 
 const ifcSQL = `
@@ -423,7 +498,8 @@ const managerSQL = `
 const todoSQL  = `
   CREATE TABLE IF NOT EXISTS todo (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    content TEXT,
+    title TEXT,
+    description TEXT,
     writer INTEGER,
     ifc INTEGER,
     manager INTEGER,
@@ -432,11 +508,18 @@ const todoSQL  = `
     priority TEXT CHECK(priority IN ('LOW', 'MEDIUM', 'HIGH')),
     expressIDs TEXT,
     camera TEXT,
-    FOREIGN KEY (ifc) REFERENCES ifc(id),
-    FOREIGN KEY (manager) REFERENCES manager(id)
+    FOREIGN KEY (ifc) REFERENCES ifc(id) ON DELETE CASCADE,
+    FOREIGN KEY (manager) REFERENCES manager(id) ON DELETE CASCADE
   )
 `;
 
+const ifc_managerSQL = ` 
+  CREATE TABLE IF NOT EXISTS ifc_manager (
+    ifcId INTEGER,
+    managerId INTEGER,
+    PRIMARY KEY (ifcId, managerId)
+  )
+`;
 
 function setupIfcDatabase() {
   try {
@@ -445,6 +528,17 @@ function setupIfcDatabase() {
     db.prepare(ifcSQL).run();
   } catch (error) {
     console.error('Error setting up ifc database:', error);
+  }
+}
+
+
+function setupIfcManagerDatabase() {
+  try {
+    db.prepare("DROP TABLE IF EXISTS ifc_manager").run();
+
+    db.prepare(ifc_managerSQL).run();
+  } catch (error) {
+    console.error('Error setting up ifc_manager database:', error);
   }
 }
 
@@ -610,6 +704,7 @@ function closeDatabase() {
 
 function main() {
   try {
+    // setupIfcManagerDatabase();
     // setupTodoDatabase();
     // setupIfcDatabase();    
     // setupManagerDatabase();

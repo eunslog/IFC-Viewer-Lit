@@ -3,7 +3,7 @@ import * as OBF from "@thatopen/components-front";
 import * as THREE from "three";
 
 
-function clearMarkers(components: OBC.Components, world: OBC.World) {
+export function clearMarkers(components: OBC.Components, world: OBC.World) {
   const marker = components.get(OBF.Marker);
   const markerList = marker.getWorldMarkerList(world); 
 
