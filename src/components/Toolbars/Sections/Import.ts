@@ -6,8 +6,8 @@ import * as CUI from "@thatopen/ui-obc";
 import * as FRAGS from "@thatopen/fragments";
 import Zip from "jszip";
 
-const input = document.createElement("input");
 const askForFile = (extension: string) => {
+  const input = document.createElement("input");
   return new Promise<File | null>((resolve) => {
     input.type = "file";
     input.accept = extension;
@@ -25,39 +25,135 @@ const askForFile = (extension: string) => {
   });
 };
 
-// Save file to DB
+const saveManagersToDB = async (ifcId: number, managerIds: number[]) => {
+  const payload = {
+    ifcId,
+    managerIds,
+  };
+  
+  const response = await fetch("http://localhost:3000/api/ifc_manager", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  return response;
+};
+
 const saveToDB = async (file: File, content: Uint8Array | string) => {
-  if (!confirm("db에 저장하시겠습니까?")) return;
 
   try {
-    const payload = {
-      name: file.name,
-      content: content instanceof Uint8Array ? Array.from(content) : content,
+    // Create modal
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.display = 'flex';
+    modal.style.justifyContent = 'center';
+    modal.style.alignItems = 'center';
+
+    const modalContent = document.createElement('div');
+    modalContent.style.backgroundColor = 'hsl(210 10% 5%)';
+    modalContent.style.padding = '20px';
+    modalContent.style.borderRadius = '5px';
+    modalContent.style.width = '300px';
+    modal.appendChild(modalContent);
+
+    const messageLabel = document.createElement('bim-label');
+    messageLabel.textContent = 'Please select managers.';
+    messageLabel.style.fontSize = '15px';
+    messageLabel.style.marginBottom = '10px';
+    messageLabel.style.lineHeight = '1.5';
+    modalContent.appendChild(messageLabel);
+
+    // Manager dropdown
+    const managerDropdown = document.createElement('bim-dropdown');
+    managerDropdown.multiple = true;
+    await fetch('http://localhost:3000/api/manager')
+      .then(response => response.json())
+      .then(managers => {
+        managers.forEach((manager: { id: number; name: string; position: string }) => {
+          const option = document.createElement('bim-option');
+          option.setAttribute('label', `${manager.name} [${manager.position}]`);
+          option.setAttribute('value', manager.id.toString());
+          managerDropdown.appendChild(option);
+        });
+      });
+
+    modalContent.appendChild(managerDropdown);
+
+    // Button container
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.justifyContent = 'space-between';
+    buttonContainer.style.marginTop = '20px';
+
+    const confirmButton = document.createElement('bim-button');
+    confirmButton.label = "확인";
+    confirmButton.style.marginRight = '10px';
+    buttonContainer.appendChild(confirmButton);
+
+    const cancelButton = document.createElement('bim-button');
+    cancelButton.label = "취소";
+    cancelButton.onclick = () => {
+      document.body.removeChild(modal);
     };
+    buttonContainer.appendChild(cancelButton);
 
-    const response = await fetch("http://localhost:3000/api/ifc", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
+    modalContent.appendChild(buttonContainer);
 
-    if (response.ok) {
-      const result = await response.json();
-      alert(`DB에 저장되었습니다.`);
+    document.body.appendChild(modal);
 
-      const event = new CustomEvent("ifcSaved");
-      window.dispatchEvent(event);
-    } else {
-      const errorText = await response.text();
-      console.error("DB 저장 실패:", errorText);
-      alert("DB 저장에 실패하였습니다.");
+    // Insert DB
+    confirmButton.onclick = async () => {
+      const selectedOptions = Array.from(managerDropdown.value);
+
+      const payload = {
+        name: file.name,
+        content: content instanceof Uint8Array ? Array.from(content) : content,
+      };
+
+      const ifcResponse = await fetch("http://localhost:3000/api/ifc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      if (ifcResponse.ok) {
+        const result = await ifcResponse.json();
+        const ifcId = result.id;
+        const saveManagers = await saveManagersToDB(ifcId, selectedOptions);
+        document.body.removeChild(modal);
+  
+        if (saveManagers.ok) {
+          alert(`데이터베이스에 저장되었습니다.`);
+          const event = new CustomEvent("ifcSaved");
+          window.dispatchEvent(event);
+        } else {
+          console.error("데이터베이스 저장 실패");
+          alert("데이터베이스 저장에 실패하였습니다.");
+        }
+          } else {
+        const errorText = await ifcResponse.text();
+        console.error("데이터베이스 저장 실패:", errorText);
+        alert("데이터베이스 저장에 실패하였습니다.");
+      }
+
+    };
+    
+    return true;
+
+    } catch (error) {
+      console.error("DB 저장 중 오류 발생:", error);
+      alert("DB 저장 중 오류가 발생하였습니다.");
+      return false;
     }
-  } catch (error) {
-    console.error("DB 저장 중 오류 발생:", error);
-    alert("DB 저장 중 오류가 발생하였습니다.");
-  }
 };
+
+
 
 export default (components: OBC.Components) => {
   const [loadBtn] = CUI.buttons.loadIfc({ components });
@@ -76,7 +172,15 @@ export default (components: OBC.Components) => {
 
     const zipBuffer = await fragmentsZip.arrayBuffer();
     const uint8ArrayBuffer = new Uint8Array(zipBuffer);
-    await saveToDB(fragmentsZip, uint8ArrayBuffer);
+
+    // Check if file saves
+    if (confirm("데이터베이스에 저장하시겠습니까?")) 
+    {
+      const isSaved = await saveToDB(fragmentsZip, uint8ArrayBuffer);
+      if (isSaved) {
+        return;
+      } 
+    }
 
     const zip = new Zip();
     await zip.loadAsync(zipBuffer);
@@ -170,8 +274,16 @@ export default (components: OBC.Components) => {
     if (!ifcFile) return;
 
     const data = new Uint8Array(await ifcFile.arrayBuffer());
-    await saveToDB(ifcFile, data);
 
+    // Check if file saves
+    const shouldSave = confirm("데이터베이스에 저장하시겠습니까?");
+    if (shouldSave) {
+      const isSaved = await saveToDB(ifcFile, data);
+      if (isSaved) {
+        return; 
+      }
+    }
+    
     try {
       const model = await fragmentIfcLoader.load(data);
       model.name = ifcFile.name.replace(".ifc", "");
