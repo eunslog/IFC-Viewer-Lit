@@ -11,8 +11,10 @@ export default (components: OBC.Components, world: OBC.World) => {
   clipper.Type = OBF.EdgesPlane;
 
   const highlighter = components.get(OBF.Highlighter);
+  const fragmentsManager = components.get(OBC.FragmentsManager);
+  const clippingPlanesMap = new Map<string, Map<string, Set<OBC.SimplePlane>>>();
 
-  // Clipping style
+  // Clipping styleW
   const blueFill = new THREE.MeshBasicMaterial({ color: "lightblue", side: THREE.DoubleSide });
   const blueLine = new THREE.LineBasicMaterial({ color: "blue" });
   const blueOutline = new THREE.MeshBasicMaterial({
@@ -30,13 +32,31 @@ export default (components: OBC.Components, world: OBC.World) => {
 
   // Apply clipping
   const fragments = components.get(OBC.FragmentsManager);
-  fragments.onFragmentsLoaded.add(model => {
+  fragments.onFragmentsLoaded.add(() => {
     applyClippingStyles(fragments);
   });
+      
 
   const createClippingPlaneForSelection = () => {
+
     const selection = highlighter.selection; 
+    const select = highlighter.selection.select;
     const boundingBox = new THREE.Box3();
+  
+    const fragmentKeys = Object.keys(select);
+    const fragmentID = fragmentKeys[0];
+    const fragment = fragmentsManager.list.get(fragmentID);
+
+    if (!fragment || !fragment.mesh || !fragment.mesh.parent) {
+      console.error("Fragment or its mesh/parent is not valid.");
+      return;
+    }
+
+    const modelUUID = fragment.mesh.parent?.uuid;
+    if (!modelUUID) {
+      console.error('Not found Model UUID');
+      return;
+    }
 
     if (selection && Object.keys(selection).length > 0) {
       Object.entries(selection).forEach(([fragmentID, fragmentSelection]) => {
@@ -48,13 +68,57 @@ export default (components: OBC.Components, world: OBC.World) => {
         }
       });
 
-      clipper.create(world); 
+      const simplePlane = clipper.create(world); 
+      if (simplePlane) {
+        if (!clippingPlanesMap.has(modelUUID)) {
+          clippingPlanesMap.set(modelUUID, new Map<string, Set<OBC.SimplePlane>>());
+        }
+        const planesMap = clippingPlanesMap.get(modelUUID);
+        if(planesMap) {
+          if (!planesMap.has(fragmentID)) {
+            planesMap.set(fragmentID, new Set<OBC.SimplePlane>());
+          }
+          planesMap.get(fragmentID)?.add(simplePlane);
+        }
+      }
       edges.update(true);
-      
+
     } else {
       console.error('Not found clipping');
     }
   };
+
+  fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
+    fragmentIDs.forEach(fragmentID => {
+      // Find model UUID from fragmentID
+      const modelUUID = Array.from(clippingPlanesMap.keys()).find(uuid => {
+        const planesMap = clippingPlanesMap.get(uuid);
+        return planesMap && planesMap.has(fragmentID);
+      });
+  
+      if (modelUUID) {
+        const planesMap = clippingPlanesMap.get(modelUUID); 
+        if (planesMap) {
+        const planes = planesMap.get(fragmentID);
+        
+        if (planes) {
+          planes.forEach(simplePlane => {
+            // Delete plane
+            simplePlane.dispose();
+          });
+          planesMap.delete(fragmentID);
+          if (planesMap.size === 0) {
+            clippingPlanesMap.delete(modelUUID);
+          }
+        } else {
+          console.error(`No clipping planes found for fragment ID ${fragmentID}.`);
+        }
+      }
+      } else {
+        console.warn(`No model UUID found for fragmentID: ${fragmentID}`);
+      }
+    });
+  });
 
   // Create clipping plane
   const appContainer = document.getElementById("app");

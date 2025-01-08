@@ -19,8 +19,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express.json({ limit: "500mb" }));
+app.use(express.urlencoded({ limit: "500mb", extended: true }));
 
 app.listen(port, () => {
   console.log(`Connected successfully on port ${port}`)
@@ -36,7 +36,6 @@ app.get('/api/manager', (_req: Request, res: Response) => {
   try {
     const selectManagerSQL = db.prepare("SELECT id, name, position FROM manager");
     const managers = selectManagerSQL.all();
-    console.log('managers: ', managers);
     res.json(managers);
   } catch (err) {
     console.error("Error fetching managers: ", err);
@@ -48,7 +47,6 @@ app.get('/api/ifcs/name', (_req: Request, res: Response) => {
   try {
     const selectIFCsSQL = db.prepare("SELECT id, name FROM ifc");
     const ifcs = selectIFCsSQL.all();
-    console.log('ifcs info: ', ifcs);
     res.json(ifcs);
   } catch (err) {
     console.error("Error fetching ifcs: ", err);
@@ -91,7 +89,6 @@ app.get('/api/ifc/:id', (req: Request, res: Response) => {
 // Post IFC
 app.post('/api/ifc', (req: Request, res: Response) => {
   try {
-    console.log('Request body:', req.body); 
     const { name, content } = req.body; 
     if (!name || !content) {
       res.status(400).json({ error: "Name and content are required." });
@@ -111,7 +108,6 @@ app.post('/api/ifc', (req: Request, res: Response) => {
       bufferContent
     );
 
-    console.log('ifc inserted:', result);
     res.status(201).json({ 
       message: "IFC inserted successfully", 
       id: result.lastInsertRowid 
@@ -153,8 +149,6 @@ app.post('/api/todo', (req: Request, res: Response) => {
     const { title, description, writer, ifc, manager, deadline, priority, expressIDs } = req.body;
     const camera = JSON.stringify(req.body.camera);
     
-    console.log('Request Body:', req.body);
-
     const insertTodoSQL = db.prepare(`
       INSERT INTO todo (
         title,
@@ -182,7 +176,6 @@ app.post('/api/todo', (req: Request, res: Response) => {
       camera
     );
 
-    console.log('Todo created:', result);
     res.status(201).json({ 
       message: "Todo created successfully", 
       id: result.lastInsertRowid 
@@ -196,7 +189,6 @@ app.post('/api/todo', (req: Request, res: Response) => {
 // Get sorted and filtered todo list
 app.get('/api/todo/:id', (req: Request, res: Response) => {
   try {
-    console.log("----- sorted and filtered todo list -----");
     const ifcId = parseInt(req.params.id, 10);
     if (isNaN(ifcId)) {
       res.status(400).json({ error: 'Invalid IFC ID' });
@@ -266,8 +258,6 @@ app.get('/api/todo/:id', (req: Request, res: Response) => {
 
     const todos = db.prepare(selectTodoSQL).all(...queryParams);
 
-    console.log("sorted and filtered todoList: ", todos);
-
     res.json(todos);
   } catch (err) {
     console.error('Error fetching sorted and filtered todos:', err);
@@ -278,12 +268,6 @@ app.get('/api/todo/:id', (req: Request, res: Response) => {
 // Edit Todo
 app.put('/api/todo/:id', (req: Request, res: Response) => {
   try {
-    console.log("----- Updating todo -----");
-
-    console.log("Received PUT request:");
-    console.log("Params:", req.params);
-    console.log("Body:", req.body);
-
     const todoId = parseInt(req.params.id, 10);
     if (isNaN(todoId)) {
       res.status(400).json({ error: 'Invalid Todo ID' });
@@ -334,8 +318,6 @@ app.put('/api/todo/:id', (req: Request, res: Response) => {
       res.status(404).json({ error: 'Todo not found or no changes made' });
       return;
     }
-
-    console.log("Todo updated successfully:", { id: todoId, title, description, manager, priority, deadline });
 
     res.status(200).json({ message: 'Todo updated successfully' });
   } catch (error) {
@@ -398,7 +380,6 @@ app.get('/api/expressIDs/:id', (req: Request, res: Response) => {
     `);
 
     const expressIDS = selectExpressIDsSQL.all(ifcId);
-    console.log('expressIDs info: ', expressIDS);
     res.json(expressIDS);
   } 
    catch (err) {
@@ -437,10 +418,6 @@ app.post('/api/ifc_manager', (req: Request, res: Response) => {
 // Get managers from an ifc
 app.get('/api/managers/:id', (req: Request, res: Response) => {
   try {
-
-
-    console.log("---------managers/:id-------------");
-
     const ifcId = parseInt(req.params.id, 10);
     if (isNaN(ifcId)) {
       res.status(400).json({ error: "Invalid IFC ID" });
@@ -462,10 +439,7 @@ app.get('/api/managers/:id', (req: Request, res: Response) => {
       SELECT * FROM ifc_manager WHERE ifcId = ?;
     `)
 
-    console.log('this ifc_manager:', requestSQL.all(ifcId));
-
     const managers = selectedManagersSQL.all(ifcId);
-    console.log('this managers: ', managers);
     res.json(managers);
   } 
    catch (err) {
