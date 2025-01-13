@@ -11,7 +11,7 @@ Open BIM App Templates인 https://github.com/thatOpen/engine_templates 를 기�
 > IFC(Industry Foundation Classes)
 >
 > 
-> TED 표준이자, openBIM 데이터 교환을 위한 글로벌 표준입니다.
+> ISO 표준이자, openBIM 데이터 교환을 위한 글로벌 표준입니다.
 > 건물의 3차원 형상 및 BIM 데이터에 내포된 속성 정보를 서로 다른 SW 사이에서 주고받을 수 있게 되어있습니다.
 
 

@@ -11,10 +11,9 @@ export default (components: OBC.Components, world: OBC.World) => {
   clipper.Type = OBF.EdgesPlane;
 
   const highlighter = components.get(OBF.Highlighter);
-  const fragmentsManager = components.get(OBC.FragmentsManager);
   const clippingPlanesMap = new Map<string, Map<string, Set<OBC.SimplePlane>>>();
 
-  // Clipping styleW
+  // Clipping style
   const blueFill = new THREE.MeshBasicMaterial({ color: "lightblue", side: THREE.DoubleSide });
   const blueLine = new THREE.LineBasicMaterial({ color: "blue" });
   const blueOutline = new THREE.MeshBasicMaterial({
@@ -31,9 +30,9 @@ export default (components: OBC.Components, world: OBC.World) => {
   };
 
   // Apply clipping
-  const fragments = components.get(OBC.FragmentsManager);
-  fragments.onFragmentsLoaded.add(() => {
-    applyClippingStyles(fragments);
+  const fragmentsManager = components.get(OBC.FragmentsManager);
+  fragmentsManager.onFragmentsLoaded.add(() => {
+    applyClippingStyles(fragmentsManager);
   });
       
 
@@ -60,7 +59,7 @@ export default (components: OBC.Components, world: OBC.World) => {
 
     if (selection && Object.keys(selection).length > 0) {
       Object.entries(selection).forEach(([fragmentID, fragmentSelection]) => {
-        const fragment = fragments.list.get(fragmentID);
+        const fragment = fragmentsManager.list.get(fragmentID);
         if (fragment) {
           fragmentSelection.ids.forEach(() => {
             boundingBox.expandByObject(fragment.mesh); 
@@ -88,7 +87,7 @@ export default (components: OBC.Components, world: OBC.World) => {
     }
   };
 
-  fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
+  fragmentsManager.onFragmentsDisposed.add(({ fragmentIDs }) => {
     fragmentIDs.forEach(fragmentID => {
       // Find model UUID from fragmentID
       const modelUUID = Array.from(clippingPlanesMap.keys()).find(uuid => {
@@ -110,12 +109,8 @@ export default (components: OBC.Components, world: OBC.World) => {
           if (planesMap.size === 0) {
             clippingPlanesMap.delete(modelUUID);
           }
-        } else {
-          console.error(`No clipping planes found for fragment ID ${fragmentID}.`);
-        }
+        } 
       }
-      } else {
-        console.warn(`No model UUID found for fragmentID: ${fragmentID}`);
       }
     });
   });

@@ -8,7 +8,13 @@ interface MeasurementTools {
   volume: OBF.VolumeMeasurement;
 }
 
-export default function measurement(components: OBC.Components, world: OBC.World, viewport: BUI.Viewport) {
+export default function measurement(components: OBC.Components, worlds: OBC.World, viewport: BUI.Viewport) {
+  
+  let edgeCnt = 0;
+  let faceCnt = 0;
+  const fragmentsManager = components.get(OBC.FragmentsManager);
+  const edgeMeasurementsMap = new Map<string, Map<string, number[]>>();   
+  const faceMeasurementsMap = new Map<string, Map<string, OBF.AreaSelection>>();   
 
   const tools: MeasurementTools = {
     edge: components.get(OBF.EdgeMeasurement),
@@ -17,9 +23,102 @@ export default function measurement(components: OBC.Components, world: OBC.World
   };
 
   Object.values(tools).forEach(tool => {
-    tool.world = world;
+    tool.world = worlds;
     tool.enabled = false;
   });
+
+  const createEdgeMeasurement = () => {
+
+    if (!components) {
+      throw new Error("Components instance is not initialized.");
+    }
+
+    const select = highlighter.selection.select;
+    const fragmentKeys = Object.keys(select);
+    const fragmentID = fragmentKeys[0];
+    const fragment = fragmentsManager.list.get(fragmentID);
+
+    if (!fragment || !fragment.mesh || !fragment.mesh.parent) {
+      console.error("Fragment or its mesh/parent is not valid.");
+      return;
+    }
+
+    const modelUUID = fragment.mesh.parent?.uuid;
+    if (!modelUUID) {
+      console.error('Not found Model UUID');
+      return;
+    }
+
+    if (!edgeMeasurementsMap.has(modelUUID)) {
+      edgeMeasurementsMap.set(modelUUID, new Map<string, number[]>());
+    }
+
+    const edgeMeasurementsForModel = edgeMeasurementsMap.get(modelUUID);
+    if (edgeMeasurementsForModel?.has(fragmentID)) {
+      return edgeMeasurementsForModel.get(fragmentID); 
+    }
+
+    tools.edge.create();
+
+    const edgeMeasurement = tools.edge.get().at(edgeCnt++);
+    if (edgeMeasurement)
+    {
+      edgeMeasurementsForModel?.set(fragmentID, edgeMeasurement); 
+    }
+
+  };
+
+
+  const createFaceMeasurement = () => {
+
+    if (!components) {
+      throw new Error("Components instance is not initialized.");
+    }
+
+    const select = highlighter.selection.select;
+    const fragmentKeys = Object.keys(select);
+    const fragmentID = fragmentKeys[0];
+    const fragment = fragmentsManager.list.get(fragmentID);
+
+    if (!fragment || !fragment.mesh || !fragment.mesh.parent) {
+      console.error("Fragment or its mesh/parent is not valid.");
+      return;
+    }
+
+    const modelUUID = fragment.mesh.parent?.uuid;
+    if (!modelUUID) {
+      console.error('Not found Model UUID');
+      return;
+    }
+
+    if (!faceMeasurementsMap.has(modelUUID)) {
+      faceMeasurementsMap.set(modelUUID, new Map<string, OBF.AreaSelection>());
+    }
+    const faceMeasurementsForModel = faceMeasurementsMap.get(modelUUID);
+    
+    if (faceMeasurementsForModel?.has(fragmentID)) {
+      return faceMeasurementsForModel.get(fragmentID); 
+    }
+
+    tools.face.create();
+
+    const faceMeasurement = tools.face.selection.at(faceCnt++);
+    if (faceMeasurement)
+    {
+      faceMeasurementsForModel?.set(fragmentID, faceMeasurement); 
+    }
+  };
+
+
+  viewport.ondblclick = () => {
+    if (tools.edge.enabled) {
+      createEdgeMeasurement();
+    }
+    if (tools.face.enabled) {
+      createFaceMeasurement();
+    }
+  };
+
 
   let savedEdgeMeasurements: number[][] = [];
   let savedFaceMeasurements: OBF.SerializedAreaMeasure[] = [];
@@ -47,6 +146,20 @@ export default function measurement(components: OBC.Components, world: OBC.World
   };
 
   window.addEventListener("keydown", (event) => {
+
+    const selectedFragments = highlighter.selection.select;
+    const fragmentKeys = Object.keys(selectedFragments);
+    
+    if (fragmentKeys.length === 0) return; 
+  
+    const fragmentID = fragmentKeys[0];
+    const fragment = fragmentsManager.list.get(fragmentID);
+  
+    if (!fragment || !fragment.mesh || !fragment.mesh.parent) {
+      console.error("Fragment or its mesh/parent is not valid.");
+      return;
+    }
+
     if (event.code === "KeyO") {
       if (tools.edge.enabled) {
         tools.edge.delete();
@@ -64,14 +177,38 @@ export default function measurement(components: OBC.Components, world: OBC.World
     } else if (event.code === "KeyL") {
       if (tools.edge.enabled && savedEdgeMeasurements.length > 0) {
         tools.edge.set(savedEdgeMeasurements);
+        savedEdgeMeasurements = [];
       } else if (tools.face.enabled && savedFaceMeasurements.length > 0) {
         tools.face.set(savedFaceMeasurements);
+        savedFaceMeasurements = [];
       }
     }
   });
 
+
   const highlighter = components.get(OBF.Highlighter);
+
   highlighter.events.select.onHighlight.add((event) => {
+
+    const selectedFragments = highlighter.selection.select;
+    const fragmentKeys = Object.keys(selectedFragments);
+    
+    if (fragmentKeys.length === 0) return;
+
+    const fragmentID = fragmentKeys[0];
+    const fragment = fragmentsManager.list.get(fragmentID);
+
+    if (!fragment || !fragment.mesh || !fragment.mesh.parent) {
+      console.error("Fragment or its mesh/parent is not valid.");
+      return;
+    }
+
+    const modelId = fragment.mesh.parent?.uuid; 
+    if (!modelId) {
+      console.error('Model ID not found for the selected fragment.');
+      return;
+    }
+
     if (tools.volume.enabled) {
       const volume = tools.volume.getVolumeFromFragments(event);
       console.log(volume);
@@ -79,18 +216,65 @@ export default function measurement(components: OBC.Components, world: OBC.World
   });
 
   highlighter.events.select.onClear.add(() => {
-    if (tools.volume.enabled) {
-      tools.volume.clear();
-    }
+    tools.volume.clear();
   });
 
-  viewport.ondblclick = () => {
-    if (tools.edge.enabled) {
-      tools.edge.create();
-    } else if (tools.face.enabled) {
-      tools.face.create();
-    }
-  };
+
+
+  fragmentsManager.onFragmentsDisposed.add(({ fragmentIDs }) => {
+
+    // Delete volumeMeasurements
+    highlighter.clear();
+
+    // Delete edgeMeasurements
+    fragmentIDs.forEach(fragmentID => {
+      const modelUUID = Array.from(edgeMeasurementsMap.keys()).find(uuid => {
+        const measurements = edgeMeasurementsMap.get(uuid);
+        return measurements && measurements.has(fragmentID);
+      });
+
+      if (modelUUID) {
+        if (tools.edge.get().length != 0){
+          tools.edge.deleteAll();
+        }
+        const measurements = edgeMeasurementsMap.get(modelUUID);
+        if (measurements) {
+          const edgeMeasurement = measurements?.get(fragmentID); 
+          if (edgeMeasurement) {
+            measurements.delete(fragmentID);
+            if (measurements.size === 0) {
+              edgeMeasurementsMap.delete(modelUUID);
+            }
+          }
+        }
+      }
+    });
+
+    // Delete faceMeasurements
+    fragmentIDs.forEach(fragmentID => {
+      const modelUUID = Array.from(faceMeasurementsMap.keys()).find(uuid => {
+          const measurements = faceMeasurementsMap.get(uuid);        
+          return measurements && measurements.has(fragmentID);
+      });
+
+      if (modelUUID) {
+        const measurements = faceMeasurementsMap.get(modelUUID);
+        if (measurements) {
+          const faceMeasurement = measurements?.get(fragmentID); 
+          if (faceMeasurement) {
+            faceMeasurement.mesh.removeFromParent();
+            faceMeasurement.label.dispose();
+            measurements.delete(fragmentID);
+            if (measurements.size === 0) {
+              faceMeasurementsMap.delete(modelUUID);
+            }
+          }
+        }
+      }
+    });
+  });
+
+
 
   return BUI.html`
     <bim-panel-section label="Measurement" icon="mdi:ruler" collapsed>
@@ -99,8 +283,8 @@ export default function measurement(components: OBC.Components, world: OBC.World
       </bim-label>
       <bim-label vertical>
         O: Delete one
-        S: Delete all
-        L: Recover deleted Edges
+        S: Save & Delete all
+        L: Recover all
       </bim-label>
       <bim-button 
         id="edge-measurement-button"
