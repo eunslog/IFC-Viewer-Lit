@@ -4,6 +4,7 @@ import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
 
 export default (components: OBC.Components, world: OBC.World) => {
+  
   const clipper = components.get(OBC.Clipper);
   clipper.enabled = false;
 
@@ -35,7 +36,6 @@ export default (components: OBC.Components, world: OBC.World) => {
     applyClippingStyles(fragmentsManager);
   });
       
-
   const createClippingPlaneForSelection = () => {
 
     const selection = highlighter.selection; 

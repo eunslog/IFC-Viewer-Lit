@@ -38,8 +38,11 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
         const model = await ifcLoader.load(project.content);
         model.name = project.name;
         const world = components.get(OBC.Worlds).list.values().next().value;
-        world.scene.three.add(model);
 
+        if (world)
+        {
+          world.scene.three.add(model);
+        }
         // Add model uuid
         projectsManager.addModelUUID(ifcId, model.uuid);
         loadedModels[ifcId] = model.uuid;
@@ -116,7 +119,8 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     relationsTree.queryString = input.value;
   };
 
-  const [createdPanel, updateState] = BUI.Component.create<BUI.Panel, { content: BUI.TemplateResult }>(
+  const [createdPanel, updateState] = BUI.Component.create<BUI.Panel
+  , { content: BUI.TemplateResult }>(
     (file) => {
       return BUI.html`
         <bim-panel>
@@ -128,9 +132,12 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
           </bim-panel-section>
           <bim-panel-section label="Spatial Structures" icon="ph:tree-structure-fill">
             <div style="display: flex; gap: 0.375rem;">
-              <bim-text-input @input=${search} vertical placeholder="Search..." debounce="200"></bim-text-input>
+              <bim-text-input @input=${search} vertical 
+              placeholder="Search..." debounce="200"></bim-text-input>
               <bim-button style="flex: 0;" 
-                @click=${() => (relationsTree.expanded = !relationsTree.expanded)}
+                @click=${() => 
+                  (relationsTree.expanded = !relationsTree.expanded)
+                  }
                 icon="eva:expand-fill"
               ></bim-button>
             </div>

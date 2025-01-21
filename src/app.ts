@@ -1,19 +1,18 @@
-import express, { Application, Request, Response } from "express";
-import cors from 'cors';
-import path from 'path';
-import fs from 'fs';
-import Database from 'better-sqlite3';
+import express, { Request, Response } from "express";
+import cors from "cors";
+import path from "path";
+import fs from "fs";
+import Database from "better-sqlite3";
 
-
-const app: Application = express();
+const app = express();
 const port: number = 3000;
-const db = new Database('testDB.db');
-const IFC_BASE_PATH = 'C:/Users/Owner/Desktop/sampleIFC';
+const db = new Database("testDB.db");
+const IFC_BASE_PATH = "C:/Users/Owner/Desktop/sampleIFC";
 
 const corsOptions = {
-  origin: 'http://localhost:5173', 
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'], 
+  origin: "http://localhost:5173", 
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
@@ -23,27 +22,30 @@ app.use(express.json({ limit: "500mb" }));
 app.use(express.urlencoded({ limit: "500mb", extended: true }));
 
 app.listen(port, () => {
-  console.log(`Connected successfully on port ${port}`)
+  console.log(`Connected successfully on port ${port}`);
 });
 
-app.get('/', (res: Response) =>  {
-  res.send('IFC Viewer')
+app.get("/", (_req: Request, res: Response) => {
+  res.send("IFC Viewer");
+  return;
 });
 
-  
+
 // Get managers
-app.get('/api/manager', (_req: Request, res: Response) => {
+app.get("/api/manager", async (_req: Request, res: Response): Promise<any> => {
   try {
-    const selectManagerSQL = db.prepare("SELECT id, name, position FROM manager");
+    const selectManagerSQL = db.prepare(
+      "SELECT id, name, position FROM manager",
+    );
     const managers = selectManagerSQL.all();
-    res.json(managers);
+    return res.json(managers);
   } catch (err) {
     console.error("Error fetching managers: ", err);
-    res.status(500).json({ error: "Failed to fetch managers" });  }
+    return res.status(500).json({ error: "Failed to fetch managers" });  }
 });
-  
+
 // Get ifcs name
-app.get('/api/ifcs/name', (_req: Request, res: Response) => {
+app.get("/api/ifcs/name", (_req: Request, res: Response) => {
   try {
     const selectIFCsSQL = db.prepare("SELECT id, name FROM ifc");
     const ifcs = selectIFCsSQL.all();
@@ -52,9 +54,9 @@ app.get('/api/ifcs/name', (_req: Request, res: Response) => {
     console.error("Error fetching ifcs: ", err);
     res.status(500).json({ error: "Failed to fetch ifcs" });  }
 });
-  
+
 // Get IFC
-app.get('/api/ifc/:id', (req: Request, res: Response) => {
+app.get("/api/ifc/:id", (req: Request, res: Response) => {
   try {
     const ifcId = parseInt(req.params.id, 10);
     const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
@@ -68,26 +70,24 @@ app.get('/api/ifc/:id', (req: Request, res: Response) => {
 
     if (ifc.content) {
       // Buffer to Base64 string
-      const base64Content = ifc.content.toString('base64');
+      const base64Content = ifc.content.toString("base64");
       const ifcResponse = {
         name: ifc.name,
         content: base64Content,
-      };    
-      res.json(ifcResponse);  
-    }  else {
+      };
+      res.json(ifcResponse);
+    } else {
       console.error("IFC content is empty for id:", ifcId);
       res.status(404).json({ error: "IFC content is empty" });
     }
-  } 
-   catch (err) {
+  } catch (err) {
     console.error("Error fetching IFC:", err);
     res.status(500).json({ error: "Failed to fetch IFC" });
   }
 });
 
-
 // Post IFC
-app.post('/api/ifc', (req: Request, res: Response) => {
+app.post("/api/ifc", (req: Request, res: Response) => {
   try {
     const { name, content } = req.body; 
     if (!name || !content) {
@@ -103,26 +103,22 @@ app.post('/api/ifc', (req: Request, res: Response) => {
       VALUES (?, ?)
     `);
 
-    const result = insertIfcSQL.run(
-      name,
-      bufferContent
-    );
+    const result = insertIfcSQL.run(name, bufferContent);
 
-    res.status(201).json({ 
-      message: "IFC inserted successfully", 
-      id: result.lastInsertRowid 
+    res.status(201).json({
+      message: "IFC inserted successfully",
+      id: result.lastInsertRowid,
     });
-
   } catch (err) {
-    console.error('Error reading or inserting the ifc file:', err);
+    console.error("Error reading or inserting the ifc file:", err);
   }
 });
 
 // Delete IFC
-app.delete('/api/ifc/:id', (req: Request, res: Response) => {
+app.delete("/api/ifc/:id", (req: Request, res: Response) => {
   try {
     const ifcId = parseInt(req.params.id, 10);
-    if (isNaN(ifcId)) {
+    if (Number.isNaN(ifcId)) {
       res.status(400).json({ error: "Invalid IFC ID" });
       return;
     }
@@ -144,11 +140,20 @@ app.delete('/api/ifc/:id', (req: Request, res: Response) => {
 });
 
 // Create todo
-app.post('/api/todo', (req: Request, res: Response) => {
+app.post("/api/todo", (req: Request, res: Response) => {
   try {
-    const { title, description, writer, ifc, manager, deadline, priority, expressIDs } = req.body;
+    const {
+      title,
+      description,
+      writer,
+      ifc,
+      manager,
+      deadline,
+      priority,
+      expressIDs,
+    } = req.body;
     const camera = JSON.stringify(req.body.camera);
-    
+
     const insertTodoSQL = db.prepare(`
       INSERT INTO todo (
         title,
@@ -173,12 +178,12 @@ app.post('/api/todo', (req: Request, res: Response) => {
       deadline,
       priority,
       expressIDs,
-      camera
+      camera,
     );
 
-    res.status(201).json({ 
-      message: "Todo created successfully", 
-      id: result.lastInsertRowid 
+    res.status(201).json({
+      message: "Todo created successfully",
+      id: result.lastInsertRowid ,
     });
   } catch (err) {
     console.error("Error creating todo:", err);
@@ -187,32 +192,40 @@ app.post('/api/todo', (req: Request, res: Response) => {
 });
 
 // Get sorted and filtered todo list
-app.get('/api/todo/:id', (req: Request, res: Response) => {
+app.get("/api/todo/:id", (req: Request, res: Response) => {
   try {
     const ifcId = parseInt(req.params.id, 10);
-    if (isNaN(ifcId)) {
-      res.status(400).json({ error: 'Invalid IFC ID' });
+    if (Number.isNaN(ifcId)) {
+      res.status(400).json({ error: "Invalid IFC ID" });
       return;
     }
 
-    const sortBy = req.query.sortBy as 'Title' | 'Deadline' | 'Priority' | undefined;
-    let filterByPriority = req.query.filter as string | undefined;
-    const filterByManager = req.query.manager ? parseInt(req.query.manager as string, 10) : undefined;
+    const sortBy = req.query.sortBy as
+      | "Title"
+      | "Deadline"
+      | "Priority"
+      | undefined;
+    const filterByPriority = req.query.filter as string | undefined;
+    const filterByManager = req.query.manager
+      ? parseInt(req.query.manager as string, 10)
+      : undefined;
 
     const priorityList = filterByPriority
-      ? filterByPriority.split(',').filter(priority => ['HIGH', 'MEDIUM', 'LOW'].includes(priority))
+      ? filterByPriority
+          .split(",")
+          .filter((priority) => ["HIGH", "MEDIUM", "LOW"].includes(priority))
       : [];
 
-    let orderByClause = 'ORDER BY createDate ASC';
+    let orderByClause = "ORDER BY createDate ASC";
     if (sortBy) {
       switch (sortBy) {
-        case 'Title':
-          orderByClause = 'ORDER BY title COLLATE NOCASE ASC';
+        case "Title":
+          orderByClause = "ORDER BY title COLLATE NOCASE ASC";
           break;
-        case 'Deadline':
-          orderByClause = 'ORDER BY deadline ASC';
+        case "Deadline":
+          orderByClause = "ORDER BY deadline ASC";
           break;
-        case 'Priority':
+        case "Priority":
           orderByClause = `
             ORDER BY 
               CASE 
@@ -225,22 +238,22 @@ app.get('/api/todo/:id', (req: Request, res: Response) => {
           `;
           break;
         default:
-          res.status(400).json({ error: 'Invalid sort criteria' });
+          res.status(400).json({ error: "Invalid sort criteria" });
           return;
       }
     }
 
-    let filterClause = '';
+    let filterClause = "";
     const queryParams: (number | string)[] = [ifcId];
 
     if (priorityList.length > 0) {
-      const placeholders = priorityList.map(() => '?').join(', ');
+      const placeholders = priorityList.map(() => "?").join(", ");
       filterClause += `AND priority IN (${placeholders}) `;
       queryParams.push(...priorityList);
     }
 
     if (filterByManager) {
-      filterClause += 'AND todo.manager = ? ';
+      filterClause += "AND todo.manager = ? ";
       queryParams.push(filterByManager);
     }
 
@@ -260,44 +273,46 @@ app.get('/api/todo/:id', (req: Request, res: Response) => {
 
     res.json(todos);
   } catch (err) {
-    console.error('Error fetching sorted and filtered todos:', err);
-    res.status(500).json({ error: 'Failed to fetch sorted and filtered todos' });
+    console.error("Error fetching sorted and filtered todos:", err);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch sorted and filtered todos" });
   }
 });
 
 // Edit Todo
-app.put('/api/todo/:id', (req: Request, res: Response) => {
+app.put("/api/todo/:id", (req: Request, res: Response) => {
   try {
     const todoId = parseInt(req.params.id, 10);
-    if (isNaN(todoId)) {
-      res.status(400).json({ error: 'Invalid Todo ID' });
+    if (Number.isNaN(todoId)) {
+      res.status(400).json({ error: "Invalid Todo ID" });
       return;
     }
 
     const { title, description, manager, priority, deadline } = req.body;
 
-    if (!title || typeof title !== 'string') {
-      res.status(400).json({ error: 'Invalid title' });
+    if (!title || typeof title !== "string") {
+      res.status(400).json({ error: "Invalid title" });
       return;
     }
 
-    if (!description || typeof description !== 'string') {
-      res.status(400).json({ error: 'Invalid description' });
+    if (!description || typeof description !== "string") {
+      res.status(400).json({ error: "Invalid description" });
       return;
     }
 
-    if (!manager || typeof manager !== 'number') {
-      res.status(400).json({ error: 'Invalid manager ID' });
+    if (!manager || typeof manager !== "number") {
+      res.status(400).json({ error: "Invalid manager ID" });
       return;
     }
 
-    if (!priority || !['HIGH', 'MEDIUM', 'LOW'].includes(priority)) {
-      res.status(400).json({ error: 'Invalid priority value' });
+    if (!priority || !["HIGH", "MEDIUM", "LOW"].includes(priority)) {
+      res.status(400).json({ error: "Invalid priority value" });
       return;
     }
 
-    if (!deadline || isNaN(Date.parse(deadline))) {
-      res.status(400).json({ error: 'Invalid deadline' });
+    if (!deadline || Number.isNaN(Date.parse(deadline))) {
+      res.status(400).json({ error: "Invalid deadline" });
       return;
     }
 
@@ -312,27 +327,27 @@ app.put('/api/todo/:id', (req: Request, res: Response) => {
       WHERE id = ?
     `;
 
-    const result = db.prepare(updateTodoSQL).run(title, description, manager, priority, deadline, todoId);
+    const result = db
+      .prepare(updateTodoSQL)
+      .run(title, description, manager, priority, deadline, todoId);
 
     if (result.changes === 0) {
-      res.status(404).json({ error: 'Todo not found or no changes made' });
+      res.status(404).json({ error: "Todo not found or no changes made" });
       return;
     }
 
-    res.status(200).json({ message: 'Todo updated successfully' });
+    res.status(200).json({ message: "Todo updated successfully" });
   } catch (error) {
-    console.error('Error updating todo:', error);
-    res.status(500).json({ error: 'Failed to update todo' });
+    console.error("Error updating todo:", error);
+    res.status(500).json({ error: "Failed to update todo" });
   }
 });
 
-
-
 // Delete todo
-app.delete('/api/todo/:id', (req: Request, res: Response) => {
+app.delete("/api/todo/:id", (req: Request, res: Response) => {
   try {
     const todoId = parseInt(req.params.id, 10); 
-    if (isNaN(todoId)) {
+    if (Number.isNaN(todoId)) {
       res.status(400).json({ error: "Invalid Todo ID" });
       return;
     }
@@ -356,16 +371,13 @@ app.delete('/api/todo/:id', (req: Request, res: Response) => {
     console.error("Error deleting Todo:", err);
     res.status(500).json({ error: "Failed to delete Todo" });
   }
-
 });
 
-
 // Get expressIDs from ifc
-app.get('/api/expressIDs/:id', (req: Request, res: Response) => {
+app.get("/api/expressIDs/:id", (req: Request, res: Response) => {
   try {
-
     const ifcId = parseInt(req.params.id, 10);
-    if (isNaN(ifcId)) {
+    if (Number.isNaN(ifcId)) {
       res.status(400).json({ error: "Invalid IFC ID" });
       return;
     }
@@ -381,21 +393,22 @@ app.get('/api/expressIDs/:id', (req: Request, res: Response) => {
 
     const expressIDS = selectExpressIDsSQL.all(ifcId);
     res.json(expressIDS);
-  } 
-   catch (err) {
-    console.error("Error fetching expressIDs:", err); 
+  } catch (err) {
+    console.error("Error fetching expressIDs:", err);
     res.status(500).json({ error: "FailedR to fetch expressIDs" });
   }
 });
 
-app.post('/api/ifc_manager', (req: Request, res: Response) => {
+app.post("/api/ifc_manager", async (req: Request, res: Response): Promise<any> => {
   try {
     const { ifcId, managerIds } = req.body;
 
     const parsedIfcId = parseInt(ifcId, 10);
 
     if (!parsedIfcId || !Array.isArray(managerIds)) {
-      return res.status(400).json({ error: "IFC ID and manager IDs are required." });
+      return res
+        .status(400)
+        .json({ error: "IFC ID and manager IDs are required." });
     }
 
     const insertManagerSQL = db.prepare(`
@@ -407,19 +420,19 @@ app.post('/api/ifc_manager', (req: Request, res: Response) => {
       insertManagerSQL.run(parsedIfcId, managerId);
     }
 
-    res.status(201).json({ message: "Managers saved to IFC successfully." });
+    return res.json(managerIds);
   } catch (err) {
     console.error("Error saving managers to IFC:", err);
-    res.status(500).json({ error: "Failed to save managers to IFC" });
+    return res.status(500).json({ error: "Failed to save managers to IFC" });
   }
 });
 
 
 // Get managers from an ifc
-app.get('/api/managers/:id', (req: Request, res: Response) => {
+app.get("/api/managers/:id", (req: Request, res: Response) => {
   try {
     const ifcId = parseInt(req.params.id, 10);
-    if (isNaN(ifcId)) {
+    if (Number.isNaN(ifcId)) {
       res.status(400).json({ error: "Invalid IFC ID" });
       return;
     }
@@ -435,20 +448,13 @@ app.get('/api/managers/:id', (req: Request, res: Response) => {
         im.ifcId = ?
     `);
 
-    const requestSQL = db.prepare(`
-      SELECT * FROM ifc_manager WHERE ifcId = ?;
-    `)
-
     const managers = selectedManagersSQL.all(ifcId);
     res.json(managers);
-  } 
-   catch (err) {
+  } catch (err) {
     console.error("Error fetching managers:", err); 
     res.status(500).json({ error: "Failed to fetch managers" });
   }
 });
-  
-
 
 const ifcSQL = `
   CREATE TABLE IF NOT EXISTS ifc (
@@ -469,7 +475,7 @@ const managerSQL = `
   )
 `;
 
-const todoSQL  = `
+const todoSQL = `
   CREATE TABLE IF NOT EXISTS todo (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT,
@@ -487,7 +493,7 @@ const todoSQL  = `
   )
 `;
 
-const ifc_managerSQL = ` 
+const ifcManagerSQL = ` 
   CREATE TABLE IF NOT EXISTS ifc_manager (
     ifcId INTEGER,
     managerId INTEGER,
@@ -498,45 +504,24 @@ const ifc_managerSQL = `
 function setupIfcDatabase() {
   try {
     db.prepare("DROP TABLE IF EXISTS ifc").run();
-
     db.prepare(ifcSQL).run();
   } catch (error) {
-    console.error('Error setting up ifc database:', error);
+    console.error("Error setting up ifc database:", error);
   }
 }
-
 
 function setupIfcManagerDatabase() {
   try {
     db.prepare("DROP TABLE IF EXISTS ifc_manager").run();
-
-    db.prepare(ifc_managerSQL).run();
+    db.prepare(ifcManagerSQL).run();
   } catch (error) {
-    console.error('Error setting up ifc_manager database:', error);
+    console.error("Error setting up ifc_manager database:", error);
   }
 }
 
-// function insertIfcSQL() {
-//   try {
-//       const fileContent = fs.readFileSync(filePath);
-//       const insertIfcSQL = `
-//           INSERT INTO ifc (name, content)
-//           VALUES (?, ?)
-//       `;
-//       db.prepare(insertIfcSQL).run("HNS-CTL-MOD-EST-001.ifc", fileContent);
-//       console.log("IFC file inserted into the database.");
-//       } catch (err) {
-//       console.error('Error reading or inserting the file:', err);
-//   }
-// }
-
 function insertIfcSQL() {
   try {
-
-    const ifcFiles = [
-      'small.ifc',
-      'HNS-CTL-MOD-EST-001.ifc'
-    ];
+    const ifcFiles = ["small.ifc", "HNS-CTL-MOD-EST-001.ifc"];
 
     const insertIfcSQL = db.prepare(`
       INSERT INTO ifc (name, content)
@@ -551,15 +536,14 @@ function insertIfcSQL() {
         continue;
       }
 
-      const name = path.basename(fileName, '.ifc');
+      const name = path.basename(fileName, ".ifc");
       const fileContent = fs.readFileSync(filePath);
-      
+
       insertIfcSQL.run(name, fileContent);
       console.log(`IFC file ${name} inserted into the ifc database.`);
     }
-
   } catch (err) {
-    console.error('Error reading or inserting the files:', err);
+    console.error("Error reading or inserting the files:", err);
   }
 }
 
@@ -568,12 +552,12 @@ function selectIFCs() {
     const selectIFCSQL = db.prepare("SELECT id FROM ifc");
     const rows = selectIFCSQL.get();
     if (rows) {
-      console.log('Retrieved rows:', rows);
+      console.log("Retrieved rows:", rows);
     } else {
-      console.log('No row found with the given ID.');
+      console.log("No row found with the given ID.");
     }
   } catch (err) {
-    console.error('Error selecting IFCs:', err);
+    console.error("Error selecting IFCs:", err);
   }
 }
 
@@ -582,12 +566,12 @@ function selectIFC(id: number) {
     const selectIFCSQL = db.prepare("SELECT * FROM ifc WHERE id = ?");
     const row = selectIFCSQL.get(id);
     if (row) {
-      console.log('Retrieved row:', row);
+      console.log("Retrieved row:", row);
     } else {
-      console.log('No row found with the given ID.');
+      console.log("No row found with the given ID.");
     }
   } catch (err) {
-    console.error('Error selecting IFC:', err);
+    console.error("Error selecting IFC:", err);
   }
 }
 
@@ -596,12 +580,12 @@ function deleteIFC(id: number) {
     const deleteIFCSQL = db.prepare("DELETE FROM ifc WHERE id = ?");
     const row = deleteIFCSQL.run(id);
     if (row) {
-      console.log('Retrieved row:', row);
+      console.log("Retrieved row:", row);
     } else {
-      console.log('No row found with the given ID.');
+      console.log("No row found with the given ID.");
     }
   } catch (err) {
-    console.error('Error deleting IFC:', err);
+    console.error("Error deleting IFC:", err);
   }
 }
 
@@ -611,53 +595,42 @@ function setupManagerDatabase() {
 
     db.prepare(managerSQL).run();
   } catch (error) {
-    console.error('Error setting up manager database:', error);
+    console.error("Error setting up manager database:", error);
   }
 }
 
-function insertManager(name: string, position:string, company:string, department:string, team: string) {
+function insertManager(
+  name: string,
+  position: string,
+  company: string,
+  department: string,
+  team: string,
+) {
   try {
-      const insertManagerSQL = `
+    const insertManagerSQL = `
         INSERT INTO manager (name, position, company, department, team)
         VALUES (?, ?, ?, ?, ?)
       `;
-      db.prepare(insertManagerSQL).run(name, position, company, department, team);
-      console.log("Manager inserted into the database.");
-    } catch (err) {
-      console.error('Error inserting manager:', err);
-    }
+    db.prepare(insertManagerSQL).run(name, position, company, department, team);
+    console.log("Manager inserted into the database.");
+  } catch (err) {
+    console.error("Error inserting manager:", err);
+  }
 }
-
 
 function deleteManager(id: number) {
   try {
     const deleteManagerSQL = db.prepare("DELETE FROM manager WHERE id = ?");
     const row = deleteManagerSQL.run(id);
     if (row) {
-      console.log('Retrieved row:', row);
+      console.log("Retrieved row:", row);
     } else {
-      console.log('No row found with the given ID.');
+      console.log("No row found with the given ID.");
     }
   } catch (err) {
-    console.error('Error deleting Manager:', err);
+    console.error("Error deleting Manager:", err);
   }
 }
-
-// async function selectManager() {
-//   return new Promise<void>((resolve, reject) => {
-//     const selectManagerSQL = `SELECT * FROM manager WHERE id = ?`;
-//     db.get(selectManagerSQL, 1, (err: Error | null, row: any) => {
-//       if (err) {
-//         console.error(err.message);
-//         reject(err);
-//       } else {
-//         console.log('Retrieved row:', row);
-//         resolve();
-//       }
-//     });
-//   });
-// }
-
 
 function setupTodoDatabase() {
   try {
@@ -667,7 +640,7 @@ function setupTodoDatabase() {
 
     console.log("complete setup Todo Database.");
   } catch (error) {
-    console.error('Error setting up todo database:', error);
+    console.error("Error setting up todo database:", error);
   }
 }
 
@@ -680,7 +653,7 @@ function main() {
   try {
     // setupIfcManagerDatabase();
     // setupTodoDatabase();
-    // setupIfcDatabase();    
+    // setupIfcDatabase();
     // setupManagerDatabase();
 
     // insertIfcSQL();
@@ -693,9 +666,8 @@ function main() {
     // insertManager("Gwak Iseo", "Staff", "Kepcoenc", "Digital Transformation Department", "Data Management Team");
     // insertManager("Seo Youngeun", "Intern", "Kepcoenc", "Digital Transformation Department", "Data Management Team");
 
-
   } catch (error) {
-    console.error('An error occurred:', error);
+    console.error("An error occurred:", error);
   } finally {
     closeDatabase();
   }

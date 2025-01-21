@@ -1,6 +1,3 @@
-@import url(../node_modules/material-icons/iconfont/material-icons.css);
-@import url(../node_modules/material-symbols/index.css);
-
 :root {
   /* Grayscale Colors */
   --bim-ui_gray-0: hsl(210 10% 5%);
@@ -20,11 +17,6 @@
   --bim-ui_main-contrast: var(--bim-ui_gray-10);
   --bim-ui_accent-contrast: var(--bim-ui_gray-0);
 }
-
-/* iconify-icon 태그의 기본 색상을 흰색으로 설정 */
-/* iconify-icon {
-  color: #ffffff;
-} */
 
 /* Background Colors */
 @media (prefers-color-scheme: dark) {

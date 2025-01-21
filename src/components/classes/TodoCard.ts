@@ -2,8 +2,8 @@ import * as BUI from "@thatopen/ui";
 import * as OBC from "@thatopen/components";
 import placeMarker from '../Toolbars/Sections/PlaceMarker';
 import * as OBF from "@thatopen/components-front";
-import { ProjectsManager } from "./ProjectsManager";
 import * as THREE from "three";
+import { ProjectsManager } from "./ProjectsManager";
 import { clearMarkers } from '../Toolbars/Sections/PlaceMarker';
 
 
@@ -39,8 +39,9 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
 
   fragmentsManager.onFragmentsDisposed.add(() => {
-    const world = components.get(OBC.Worlds).list.values().next().value;
-    clearMarkers(components, world);
+    if (world) {
+      clearMarkers(components, world);
+    }
     highlighter.clear();
   });
 
@@ -201,57 +202,57 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     }
 
     // Camera
-    const position = world.camera.three.position.clone();
-    
-    const direction = new THREE.Vector3();
-    world.camera.three.getWorldDirection(direction); 
-
-    const targetDistance = 10; 
-    const target = position.clone().add(direction.multiplyScalar(targetDistance));
-
-    const todoCamera = {
-        position,
-        target
-    };
-
- 
-    // Request TODO creation
-    try {
-      const requestBody = {
-        title: titleInput.value,
-        description: descriptionInput.value,
-        writer: 1,
-        ifc: ifcId,
-        manager: parseInt(managerSelect.value),
-        deadline: deadlineInput.value,
-        priority: priorityDropdown?.value || "LOW",
-        expressIDs: expressIDsJson,
-        camera: todoCamera
-      };
-    
-      const response = await fetch("http://localhost:3000/api/todo", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
+    if (world) {
+      const direction = new THREE.Vector3();
+      const targetDistance = 10; 
+      const position = world.camera.three.position.clone();
+      const target = position.clone().add(direction.multiplyScalar(targetDistance));
   
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }  
+      const todoCamera = {
+          position,
+          target
+      };
+  
+      world.camera.three.getWorldDirection(direction); 
 
-      await updateToDoList(ifcId)  
+      // Request TODO creation
+      try {
+        const requestBody = {
+          title: titleInput.value,
+          description: descriptionInput.value,
+          writer: 1,
+          ifc: ifcId,
+          manager: parseInt(managerSelect.value),
+          deadline: deadlineInput.value,
+          priority: priorityDropdown?.value || "LOW",
+          expressIDs: expressIDsJson,
+          camera: todoCamera
+        };
+      
+        const response = await fetch("http://localhost:3000/api/todo", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
+    
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }  
 
-      if (titleInput) titleInput.value = '';
-      if (descriptionInput) descriptionInput.value = '';
-      if (managerSelect) managerSelect.value = '';
-      if (deadlineInput) deadlineInput.value = '';
-      if (priorityDropdown) priorityDropdown.value = 'LOW';
-      highlighter.clear("select");
+        await updateToDoList(ifcId)  
 
-    } catch (error) {
-      console.error("Error creating todo:", error);
+        if (titleInput) titleInput.value = '';
+        if (descriptionInput) descriptionInput.value = '';
+        if (managerSelect) managerSelect.value = '';
+        if (deadlineInput) deadlineInput.value = '';
+        if (priorityDropdown) priorityDropdown.value = 'LOW';
+        highlighter.clear("select");
+
+      } catch (error) {
+        console.error("Error creating todo:", error);
+      }
     }
   };
   
@@ -265,7 +266,9 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       }
   
       const expressIdsJson = await expressIDsResponse.json();
-      placeMarker(components, world, expressIdsJson);
+      if (world) {
+        placeMarker(components, world, expressIdsJson);
+      }
   
       const selectedFragments = highlighter.selection.select;
       const fragmentKeys = Object.keys(selectedFragments);
@@ -385,15 +388,18 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
       const cameraData = typeof todo.camera === 'string' ? JSON.parse(todo.camera) : todo.camera;
     
-      world.camera.controls.setLookAt(
-        cameraData.position.x,
-        cameraData.position.y,
-        cameraData.position.z,
-        cameraData.target.x,
-        cameraData.target.y,
-        cameraData.target.z,
-        true
-      );
+
+      if (world && world.camera.controls) {
+        world.camera.controls.setLookAt(
+          cameraData.position.x,
+          cameraData.position.y,
+          cameraData.position.z,
+          cameraData.target.x,
+          cameraData.target.y,
+          cameraData.target.z,
+          true
+        );
+      }
 
     } catch (error) {
       console.error('Error in trackFragment:', error);
