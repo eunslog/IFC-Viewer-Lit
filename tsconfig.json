@@ -4,15 +4,13 @@
     "target": "ES2022",
     // "target": "ES2020", // original
     "useDefineForClassFields": false, // originally, true
-    // "module": "CommonJS", // add
     "module": "ESNext",
-    // "moduleResolution": "NodeNext", // add
-    // "module": "commonjs", // add
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "outDir": "dist", // add
     "rootDir": "src", // add
     "esModuleInterop": true, // add
+    
     /* Bundler mode */
     "moduleResolution": "bundler",
     // "allowImportingTsExtensions": true,

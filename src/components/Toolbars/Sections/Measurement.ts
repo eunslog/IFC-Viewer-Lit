@@ -59,6 +59,7 @@ export default function measurement(components: OBC.Components, worlds: OBC.Worl
     }
 
     tools.edge.create();
+    console.log("createEdge --- edgeCnt:", edgeCnt);
 
     const edgeMeasurement = tools.edge.get().at(edgeCnt++);
     if (edgeMeasurement)
@@ -210,8 +211,7 @@ export default function measurement(components: OBC.Components, worlds: OBC.Worl
     }
 
     if (tools.volume.enabled) {
-      const volume = tools.volume.getVolumeFromFragments(event);
-      console.log(volume);
+      tools.volume.getVolumeFromFragments(event);
     }
   });
 
@@ -234,14 +234,20 @@ export default function measurement(components: OBC.Components, worlds: OBC.Worl
       });
 
       if (modelUUID) {
+        console.log("modelUUID?", modelUUID);
         if (tools.edge.get().length != 0){
+          console.log("여기?", tools.edge.get());
           tools.edge.deleteAll();
+          console.log("deleteAll--?", tools.edge.get());
+          edgeCnt = 0;
         }
         const measurements = edgeMeasurementsMap.get(modelUUID);
         if (measurements) {
           const edgeMeasurement = measurements?.get(fragmentID); 
           if (edgeMeasurement) {
+            console.log("edgeMeasurement? " , measurements?.get(fragmentID));
             measurements.delete(fragmentID);
+            console.log("===after delete edgeMeasurement?====" , measurements?.get(fragmentID));
             if (measurements.size === 0) {
               edgeMeasurementsMap.delete(modelUUID);
             }
