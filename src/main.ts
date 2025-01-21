@@ -15,11 +15,10 @@ import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import clipEdges from "./components/Toolbars/Sections/ClipEdges";
 import measurement from "./components/Toolbars/Sections/Measurement";
-import hiderPanel from "./components/Panels/Sections/Hider";
+import hider from "./components/Panels/Sections/Hider";
 import ToDo from "./components/classes/TodoCard";
 import PanelResizer from "./components/Panels/PanelResizer";
 import { ProjectsManager } from "./components/classes/ProjectsManager";
-
 
 // Initialize BUI
 BUI.Manager.init();
@@ -99,12 +98,6 @@ const appManager = components.get(AppManager);
 const viewportGrid = viewport.querySelector<BUI.Grid>("bim-grid[floating]")!;
 appManager.grids.set("viewport", viewportGrid);
 
-// Setup fragments manager
-const fragments = components.get(OBC.FragmentsManager);
-const indexer = components.get(OBC.IfcRelationsIndexer);
-const classifier = components.get(OBC.Classifier);
-classifier.list.CustomSelections = {};
-
 // Setup Ifc Loader
 const fragmentIfcLoader  = components.get(OBC.IfcLoader);
 await fragmentIfcLoader.setup();
@@ -125,68 +118,170 @@ const excludedCats = [
 for (const cat of excludedCats) {
   fragmentIfcLoader.settings.excludedCategories.add(cat);
 }
-
 fragmentIfcLoader.settings.webIfc.COORDINATE_TO_ORIGIN = true;
-
 
 // Setup highlighter
 const highlighter = components.get(OBF.Highlighter);
 highlighter.setup({ world });
 highlighter.zoomToSelection = true;
 
+// Setup fragments manager
+const indexer = components.get(OBC.IfcRelationsIndexer);
+const classifier = components.get(OBC.Classifier);
+classifier.list.CustomSelections = {};
 const fragmentsManager = components.get(OBC.FragmentsManager);
-fragmentsManager.onFragmentsLoaded.add((model) => {
-  if (world.scene) world.scene.three.add(model);
-});
+const classificationData = new Map<string, OBC.Classification>();
+
 
 fragmentsManager.onFragmentsLoaded.add(async (model) => {
-
-  await classifier.byPredefinedType(model);
-
+  
   for (const fragment of model.items) {
     world.meshes.add(fragment.mesh);
     culler.add(fragment.mesh);
   }
 
-  world.scene.three.add(model);
+  if (world.scene) 
+  {
+    world.scene.three.add(model);
+  }
+
   setTimeout(async () => {
     world.camera.fit(world.meshes, 0.8);
   }, 50);
 
-  if(model.hasProperties) {
+  if (model.hasProperties) {
+    // Save current classification information.
+    const savedClassifierState = {
+      ...classifier.list
+    };
+
+    // Temporarily use classifier to generate classification information for a new model.
+    classifier.list = {};
+    await classifier.byPredefinedType(model);
     await indexer.process(model);
     classifier.byEntity(model);
     await classifier.bySpatialStructure(model, {
       isolate: new Set([WEBIFC.IFCBUILDINGSTOREY]),
     });
 
+    // Save new model's classifier in modelData
+    classificationData.set(model.uuid, {...classifier.list});
+
+    const modelProps = classificationData.get(model.uuid);
+    if (modelProps) {
+      // Save classification
+      for (const [classificationType, classificationData] of Object.entries(classifier.list)) {
+        if (classificationData && modelProps[classificationType]) {
+          for (const [groupName, groupData] of Object.entries(classificationData)) {
+            modelProps[classificationType][groupName] = {
+              map: groupData.map,
+              name: groupData.name,
+              id: groupData.id,
+            };
+          }
+        }
+      }
+    }
+
+    // If classifier.list is not empty, restore classifier.list
+    if (!savedClassifierState.CustomSelections || Object.keys(savedClassifierState.CustomSelections).length != 0)
+    {
+      classifier.list = savedClassifierState;
+      return;
+    }
+
+    await indexer.process(model);
+  }
+  
   updateHiderPanel(); 
+});
+
+highlighter.events.select.onHighlight.add(async () => {
+
+  const selectedFragments = highlighter.selection.select;
+  const fragmentKeys = Object.keys(selectedFragments);
+  const fragmentID = fragmentKeys[0];
+  const fragment = fragmentsManager.list.get(fragmentID);
+
+  if (!fragment || !fragment.mesh || !fragment.mesh.parent) {
+    console.error("Fragment or its mesh/parent is not valid.");
+    return;
+  }
+
+  const modelUUID = fragment.mesh.parent?.uuid;
+  if (modelUUID) {
+
+    if(JSON.stringify(classificationData.get(modelUUID)) === JSON.stringify(classifier.list)) {
+      return;
+    }
+
+    const model = fragment.group;
+    if (model) {
+      classifier.list = {};
+      await indexer.process(model);
+
+      const modelProps = classificationData.get(model.uuid);
+      if (modelProps) {
+        for (const [classificationType, classificationData] of Object.entries(modelProps)) {
+          if (!classifier.list[classificationType]) {
+            classifier.list[classificationType] = {};
+          }
+          if (classificationData && modelProps[classificationType]) {
+            for (const [groupName, groupData] of Object.entries(classificationData)) {
+              classifier.list[classificationType][groupName] = {
+                map: groupData.map,
+                name: groupData.name,
+                id: groupData.id,
+              };
+            }
+          }
+        }
+      }
+    }
+    updateHiderPanel(); 
   }
 });
 
-fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
+fragmentsManager.onFragmentsDisposed.add(({ groupID, fragmentIDs }) => {
+
+  const modelID =  (() => {
+    for (const uuid of classificationData.keys()) {
+      if (uuid == groupID)
+      {
+        return uuid;
+      }
+    }
+  })();
+
+  if (modelID) {
+    // Init classifier's list if this model's classifier equals classifier.list.
+    if(JSON.stringify(classificationData.get(modelID)) === JSON.stringify(classifier.list)) {
+      classifier.list = {};
+      classifier.list.CustomSelections = {};
+    }
+    // Delete map
+    classificationData.delete(modelID);
+  }
+
   for (const fragmentID of fragmentIDs) {
     const mesh = [...world.meshes].find((mesh) => mesh.uuid === fragmentID);
     if (mesh) world.meshes.delete(mesh);
   }
+
+  updateHiderPanel();
+
 });
 
 function updateHiderPanel() {
+
   const hiderTab = document.querySelector<BUI.Tab>('bim-tab[name="hider"]');
+  const newHider = hider(components);
 
-  if (hiderTab) {
-    hiderTab.innerHTML = '';
+  if (!hiderTab) return;
 
-    const newHiderPanel = hiderPanel(components);
+  hiderTab.innerHTML = "";
+  hiderTab.append(newHider);
 
-    if (newHiderPanel !== null) {
-      hiderTab.append(newHiderPanel);
-    } else {
-      console.error('No elements to display.');
-    }
-  } else {
-    console.error('Not found hider tab.');
-  }
 }
 
 
@@ -208,7 +303,7 @@ const leftPanel = BUI.Component.create(() => {
         ${settings(components)}
       </bim-tab>
       <bim-tab name="hider" label="Hider" icon="mdi:eye-off-outline">
-        ${hiderPanel(components)}
+        ${hider(components)}
       </bim-tab>
     </bim-tabs> 
   `;
