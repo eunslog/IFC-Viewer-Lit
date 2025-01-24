@@ -5,6 +5,7 @@ import * as CUI from "@thatopen/ui-obc";
 import { AppManager } from "../../bim-components";
 
 export default (components: OBC.Components) => {
+
   const fragments = components.get(OBC.FragmentsManager);
   const highlighter = components.get(OBF.Highlighter);
   const appManager = components.get(AppManager);
@@ -44,12 +45,28 @@ export default (components: OBC.Components) => {
     return BUI.html`
       <bim-panel-section name="selection" label="Selection Information" icon="solar:document-bold">
         <div style="display: flex; gap: 0.375rem;">
-          <bim-text-input @input=${search} vertical placeholder="Search..." debounce="200"></bim-text-input>
-          <bim-button style="flex: 0;" @click=${toggleExpanded} icon="eva:expand-fill"></bim-button>
-          <bim-button style="flex: 0;" @click=${() => propsTable.downloadData("ElementData", "tsv")} icon="ph:export-fill" tooltip-title="Export Data" tooltip-text="Export the shown properties to TSV."></bim-button>
+          <bim-text-input
+            @input=${search}
+            vertical
+            placeholder="Search..."
+            debounce="200"
+          ></bim-text-input>
+          <bim-button
+            style="flex: 0;"
+            @click=${toggleExpanded}
+            icon="eva:expand-fill"
+          ></bim-button>
+          <bim-button
+            style="flex: 0;"
+            @click=${() => propsTable.downloadData("ElementData", "tsv")}
+            icon="ph:export-fill"
+            tooltip-title="Export Data"
+            tooltip-text="Export the shown properties to TSV."
+          ></bim-button>
         </div>
         ${propsTable}
       </bim-panel-section>
     `;
   });
+
 };

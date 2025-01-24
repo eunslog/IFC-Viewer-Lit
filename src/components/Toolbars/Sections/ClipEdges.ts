@@ -52,6 +52,7 @@ export default (components: OBC.Components, world: OBC.World) => {
     }
 
     const modelUUID = fragment.mesh.parent?.uuid;
+    
     if (!modelUUID) {
       console.error('Not found Model UUID');
       return;
@@ -183,4 +184,5 @@ export default (components: OBC.Components, world: OBC.World) => {
       </bim-panel-section>
     `;
   });
+  
 }

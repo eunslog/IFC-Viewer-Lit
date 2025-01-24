@@ -100,14 +100,14 @@ appManager.grids.set("viewport", viewportGrid);
 
 // Setup Ifc Loader
 const fragmentIfcLoader  = components.get(OBC.IfcLoader);
-await fragmentIfcLoader.setup();
-// await fragmentIfcLoader.setup({
-//   autoSetWasm: false,
-//   wasm: {
-//     path: "/node_modules/web-ifc/",
-//     absolute: true,
-//   }
-// })
+// await fragmentIfcLoader.setup();
+await fragmentIfcLoader.setup({
+  autoSetWasm: false,
+  wasm: {
+    path: "/node_modules/web-ifc/",
+    absolute: true,
+  }
+})
 
 const excludedCats = [
   WEBIFC.IFCTENDONANCHOR,
@@ -157,6 +157,7 @@ fragmentsManager.onFragmentsLoaded.add(async (model) => {
 
     // Temporarily use classifier to generate classification information for a new model.
     classifier.list = {};
+    classifier.list.CustomSelections = {};
     await classifier.byPredefinedType(model);
     await indexer.process(model);
     classifier.byEntity(model);
@@ -277,19 +278,21 @@ function updateHiderPanel() {
   const hiderTab = document.querySelector<BUI.Tab>('bim-tab[name="hider"]');
   const newHider = hider(components);
 
-  if (!hiderTab) return;
-
+  if (!hiderTab)
+  {
+    return;
+  }
   hiderTab.innerHTML = "";
-  hiderTab.append(newHider);
-
+  if (newHider) 
+  {
+    hiderTab.append(newHider);
+  }
 }
-
 
 await projectsManager.loadIFCFiles();
 const projectInformationPanel = projectInformation(components, projectsManager);
 const elementDataPanel = elementData(components);
 const ToDoPanel = ToDo(components, projectsManager);
-
 // Setup UI components
 const app = document.getElementById("app") as BUI.Grid;
 
@@ -325,11 +328,10 @@ const toolbar = BUI.Component.create(() => {
       ${camera(world)}
       ${selection(components, world)}
       ${clipEdges(components, world)}
-      ${measurement(components, world, viewport)}
+      ${measurement(components, world)}
     </bim-toolbar>
   `;
 });
-
 
 // Control LeftPanel's width
 PanelResizer(leftPanel, app);

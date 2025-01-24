@@ -13,13 +13,11 @@ let panel: BUI.Panel;
 export default (components: OBC.Components, projectsManager: ProjectsManager) => {
 
   const worlds = components.get(OBC.Worlds);
-
   const loadedModels: Record<number, string> = {};
-
   const [modelsList] = CUI.tables.modelsList({
     components,
     tags: {schema: true, viewDefinition: true},
-    actions: { download: true, visibility: true, dispose: true }
+    actions: { download: true, visibility: true, dispose: true },
   });
 
   const [relationsTree] = CUI.tables.relationsTree({
@@ -29,6 +27,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     selectHighlighterName: "select",
   });
   relationsTree.preserveStructureOnFilter = true;
+
 
   const loadIFCModel = async (ifcId: number) => {
     try {
@@ -60,7 +59,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     if (!confirm("데이터베이스에서 삭제하시겠습니까?")) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/api/ifc/${ifcId}`, {
+      const response = await fetch(`/api/ifc/${ifcId}`, {
         method: "DELETE",
       });
   
@@ -98,12 +97,9 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     }
   };
 
-
-  
-
   const getIFCFilesList = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/ifcs/name");
+      const response = await fetch("/api/ifcs/name");
       if (!response.ok) {
         throw new Error("Failed to fetch IFC files");
       }
@@ -128,6 +124,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
             ${file.content}
           </bim-panel-section>
           <bim-panel-section label="Loaded Models" icon="mage:box-3d-fill">
+            <bim-label>button: download/visibility/dispose</bim-label>
             ${modelsList}
           </bim-panel-section>
           <bim-panel-section label="Spatial Structures" icon="ph:tree-structure-fill">
@@ -187,6 +184,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   
   window.addEventListener("ifcSaved", refreshIFCFiles);
   
-
   return panel;
+  
 };

@@ -8,7 +8,7 @@ export function clearMarkers(components: OBC.Components, world: OBC.World) {
   const markerList = marker.getWorldMarkerList(world); 
 
   markerList.forEach((_, markerId) => {
-      marker.delete(markerId); 
+    marker.delete(markerId); 
   });
 }
 
@@ -45,7 +45,6 @@ export default function placeMarker(components: OBC.Components, world: OBC.World
         return;
       }
 
-  
       const expressIdSet = new Set<number>(idArray.flat());
 
       boundingBoxer.reset();
@@ -66,7 +65,6 @@ export default function placeMarker(components: OBC.Components, world: OBC.World
       expressIdSet.forEach(id => {
         if (processedFragments.has(id)) {
           alreadyProcessed = true;
-          console.log(`Fragment ${id} 이미 생성됨, skipping.`);
         }
       });
 
@@ -86,9 +84,7 @@ export default function placeMarker(components: OBC.Components, world: OBC.World
         const center = box.getCenter(new THREE.Vector3());
 
         if (center) {
-             marker.create(world, "🚀", center);
-        } else {
-            console.log("No valid bounding sphere for fragment");
+          marker.create(world, "🚀", center);
         }
 
       }

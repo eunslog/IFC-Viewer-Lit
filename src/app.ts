@@ -10,14 +10,12 @@ const db = new Database("testDB.db");
 const IFC_BASE_PATH = "C:/Users/Owner/Desktop/sampleIFC";
 
 const corsOptions = {
-  origin: "http://localhost:5173", 
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
 };
 
 app.use(cors(corsOptions));
-
 app.use(express.json({ limit: "500mb" }));
 app.use(express.urlencoded({ limit: "500mb", extended: true }));
 

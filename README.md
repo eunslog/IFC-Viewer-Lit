@@ -28,13 +28,23 @@ Open BIM App Templates인 https://github.com/thatOpen/engine_templates 를 기�
 - Server
 
   Nodejs v20.16.0
+
 - Database
 
   SQLite v3.46.1
 
+
 ---
-
 ### Usage
-nodejs 및 vite 동시 실행
 
-npm run dev
+- nodejs 및 vite 동시 실행
+
+  npm run dev
+
+- 코드 변경 시,
+  
+  npx tsc 명령어 실행
+
+- 서버 네트워크 주소 변경 시,
+
+  vite.config.ts 파일에서 server:proxy:"/api":target 주소 변경
