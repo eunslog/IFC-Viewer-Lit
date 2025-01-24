@@ -3,6 +3,7 @@ import * as CUI from "@thatopen/ui-obc";
 import * as OBC from "@thatopen/components";
 
 export default (components: OBC.Components) => {
+  
   const html = document.querySelector("html")!;
   const onThemeChange = (event: Event) => {
     const selector = event.target as BUI.Selector;

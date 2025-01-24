@@ -31,7 +31,7 @@ const saveManagersToDB = async (ifcId: number, managerIds: number[]) => {
     managerIds,
   };
   
-  const response = await fetch("http://localhost:3000/api/ifc_manager", {
+  const response = await fetch("/api/ifc_manager", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -71,7 +71,7 @@ const saveToDB = async (file: File, content: Uint8Array | string) => {
     // Manager dropdown
     const managerDropdown = document.createElement('bim-dropdown');
     managerDropdown.multiple = true;
-    await fetch('http://localhost:3000/api/manager')
+    await fetch('/api/manager')
       .then(response => response.json())
       .then(managers => {
         managers.forEach((manager: { id: number; name: string; position: string }) => {
@@ -115,7 +115,7 @@ const saveToDB = async (file: File, content: Uint8Array | string) => {
         content: content instanceof Uint8Array ? Array.from(content) : content,
       };
 
-      const ifcResponse = await fetch("http://localhost:3000/api/ifc", {
+      const ifcResponse = await fetch("/api/ifc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

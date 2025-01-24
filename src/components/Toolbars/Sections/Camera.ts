@@ -2,6 +2,7 @@ import * as OBC from "@thatopen/components";
 import * as BUI from "@thatopen/ui";
 
 export default (world: OBC.World) => {
+
   const { camera } = world;
   const onFitModel = () => {
     if (camera instanceof OBC.OrthoPerspectiveCamera && world.meshes.size > 0) {
@@ -33,7 +34,6 @@ export default (world: OBC.World) => {
     }
   };
 
-
   return BUI.Component.create<BUI.PanelSection>(() => {
     return BUI.html`
       <bim-panel-section label="Camera" icon="ph:camera-fill" style="pointer-events: auto" collapsed>
@@ -55,4 +55,5 @@ export default (world: OBC.World) => {
       </bim-panel-section>
     `;
   });
+
 };

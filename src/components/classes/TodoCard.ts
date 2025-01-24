@@ -25,11 +25,11 @@ export interface ToDo {
   camera: { position: THREE.Vector3, target: THREE.Vector3, cameraType: string; };
 }
 
+
 export default (components: OBC.Components, projectsManager: ProjectsManager) => {
 
   const fragmentsManager = components.get(OBC.FragmentsManager);
   const world = components.get(OBC.Worlds).list.values().next().value;
-
   const highlighter = components.get(OBF.Highlighter);
 
   let currentSortBy: 'Title' | 'Deadline' | 'Priority' = 'Deadline';
@@ -95,13 +95,11 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       } else {
         console.error('filterContainer not found');
       }
-        updateToDoList(currentIfcId);
+      updateToDoList(currentIfcId);
     }  
   });
   
-
   const handleCreateClick = async () => {
-
     const titleInput = document.querySelector<HTMLInputElement>("#title-input");
     const descriptionInput = document.querySelector<HTMLInputElement>("#description-input");
     const deadlineInput = document.querySelector<HTMLInputElement>("#deadline-input");
@@ -113,7 +111,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     const expressIDs = Object.values(selectedFragments);
     const expressIDsArray = expressIDs.flat().map(set => Array.from(set));
     const uniqueExpressIDs = [...new Set(expressIDsArray.flat())];
-  
     const expressIDsJson = JSON.stringify(uniqueExpressIDs);
   
     if (fragmentKeys.length === 0) {
@@ -122,7 +119,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     }
   
     const fragmentMap: { [key: string]: Set<number> } = {};
-    const fragmentsManager = components.get(OBC.FragmentsManager);
   
     fragmentKeys.forEach((id) => {
       if (fragmentsManager.list.has(id)) {
@@ -158,12 +154,10 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     }
 
     const ifcId = projectsManager.getIfcIdByModelUUID(modelUUID);
-
     if (!ifcId) {
       console.error('IFC ID not found for selected model');
       return;
     }
-
     if (!titleInput?.value.trim())
     {
       alert("Please fill in title fields.");
@@ -189,7 +183,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       alert("Please select priority.");
       return;
     }
-
     // Check title length
     else if (titleInput.value.length > 20) {
       alert("Please do not exceed 20 characters for the title.");
@@ -229,7 +222,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
           camera: todoCamera
         };
       
-        const response = await fetch("http://localhost:3000/api/todo", {
+        const response = await fetch("/api/todo", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -256,11 +249,9 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     }
   };
   
-
   const updateToDoList = async (ifcId: number) => {
     try {
-
-      const expressIDsResponse = await fetch(`http://localhost:3000/api/expressIDs/${ifcId}`);
+      const expressIDsResponse = await fetch(`/api/expressIDs/${ifcId}`);
       if (!expressIDsResponse.ok) {
         throw new Error(`HTTP error! status: ${expressIDsResponse.status}`);
       }
@@ -299,7 +290,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     }
   };
     
-
   const fetchAndRenderTodos = async (
     ifcId: number,
     container: HTMLElement,
@@ -308,7 +298,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     filterByManager?: number
   ) => {
     try {
-      const url = new URL(`http://localhost:3000/api/todo/${ifcId}`);
+      const url = new URL(`/api/todo/${ifcId}`, window.location.origin);
       url.searchParams.append("sortBy", currentSortBy);
       if (filterByPriority) {
         url.searchParams.append("filter", filterByPriority);
@@ -316,7 +306,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       if (filterByManager !== undefined) {
         url.searchParams.append("manager", filterByManager.toString())
       }
-  
+
       const response = await fetch(url.toString());
       if (!response.ok) {
         throw new Error(`Failed to fetch sorted todos: ${response.statusText}`);
@@ -352,10 +342,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
   const trackFragment = (todo: ToDo) => {
     try {
-  
       const highlighter = components.get(OBF.Highlighter);
-      const fragmentsManager = components.get(OBC.FragmentsManager)
-
       const expressIDsArray: number[][] = JSON.parse(todo.expressIDs);
       const expressIDs: Set<number> = new Set<number>();
 
@@ -388,7 +375,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
 
       const cameraData = typeof todo.camera === 'string' ? JSON.parse(todo.camera) : todo.camera;
     
-
       if (world && world.camera.controls) {
         world.camera.controls.setLookAt(
           cameraData.position.x,
@@ -405,7 +391,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       console.error('Error in trackFragment:', error);
     }
   };
-
 
   // Edit Todo
   const editTodo = async (todo: ToDo) => {
@@ -435,7 +420,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       const managerDropdown = document.createElement('bim-dropdown');
       managerDropdown.setAttribute('label', 'Manager');
 
-      await fetch(`http://localhost:3000/api/managers/${currentIfcId}`)
+      await fetch(`/api/managers/${currentIfcId}`)
         .then(response => response.json())
         .then(managers => {
           managers.forEach((manager: { id: number; name: string; position: string }) => {
@@ -486,7 +471,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
         };
 
         try {
-          const response = await fetch(`http://localhost:3000/api/todo/${todo.id}`, {
+          const response = await fetch(`/api/todo/${todo.id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -520,11 +505,12 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     
   // Delete Todo
   const deleteTodo = async (todo: ToDo) => {
-      if (!confirm("데이터베이스에서 삭제하시겠습니까?")) return;
-      try {
-        const response = await fetch(`http://localhost:3000/api/todo/${todo.id}`, {
-          method: "DELETE",
-        });
+    if (!confirm("데이터베이스에서 삭제하시겠습니까?")) return;
+
+    try {
+      const response = await fetch(`/api/todo/${todo.id}`, {
+        method: "DELETE",
+      });
 
       if (response.ok) {
         alert(`데이터베이스에서 삭제되었습니다.`);
@@ -537,16 +523,14 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
         alert("Todo 삭제에 실패하였습니다.");
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-  }
+    }
     catch {
-      console.log("Error deleteing todo");
+      console.error("Error deleteing todo");
     }
   }
 
 
   const createTodoSection = (todo: ToDo, selectedExpressIDs: Set<number>) => {
-
     const todoSection = document.createElement('div');
     todoSection.style.padding = '0';
     const todoExpressIDsArray: number[][] = JSON.parse(todo.expressIDs);
@@ -624,7 +608,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     
   
   const createManagerDropdown = async () => {
-
     const managerDropdown = document.createElement('bim-dropdown');
     managerDropdown.setAttribute('label', 'Manager');
     managerDropdown.setAttribute('id', 'managerDropdown');
@@ -635,7 +618,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     }
   
     try {
-      const response = await fetch(`http://localhost:3000/api/managers/${currentIfcId}`);
+      const response = await fetch(`/api/managers/${currentIfcId}`);
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
@@ -647,17 +630,16 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
         option.setAttribute('value', manager.id.toString());
         managerDropdown.appendChild(option);
       });
+      
     } catch (error) {
       console.error('Error loading managers:', error);
     }
   
     return managerDropdown;
-  
   };
 
 
   const createFilters = async () => {
-
     const container = document.createElement('div');
 
     const priorityFilterContainer = document.createElement('div');
@@ -689,7 +671,6 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       priorityFilterContainer.appendChild(checkbox);
     });
   
-
     container.appendChild(priorityFilterContainer);
 
     const managerDropdown = document.createElement('bim-dropdown');
@@ -700,7 +681,7 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
       return;
     }
   
-    fetch(`http://localhost:3000/api/managers/${currentIfcId}`)
+    fetch(`/api/managers/${currentIfcId}`)
       .then(response => response.json())
       .then(managers => {
         managers.forEach((manager: { id: number; name: string; position: string }) => {
@@ -718,10 +699,10 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
           currentFilterByManager = parseInt(selectedManager, 10);
   
           updateToDoList(currentIfcId);
-        });
       });
+    });
   
-      container.appendChild(managerDropdown);
+    container.appendChild(managerDropdown);
 
     // Sort By - Sort dropdown
     const sortDropdown = document.createElement('bim-dropdown');
@@ -741,14 +722,10 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
     container.appendChild(sortDropdown);
 
     return container;
-  
   };
-  
-  
-  
+
 
   const fragment = BUI.Component.create(() => {
-      
     return BUI.html`
       <bim-panel-section id='todo-panel-section' label="Todo" icon="mdi:clipboard-list">
         <bim-panel-section id="new-todo" label="New Todo" icon="mdi:card-text">
@@ -798,4 +775,5 @@ export default (components: OBC.Components, projectsManager: ProjectsManager) =>
   });
 
   return fragment;
+  
 }

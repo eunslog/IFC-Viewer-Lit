@@ -4,14 +4,17 @@ import * as BUI from "@thatopen/ui";
 import customSelections from "../../Tables/CustomSelections";
 
 export default (components: OBC.Components) => {
-  const [customSelectionsTable, updateCustomSelections] = customSelections({
-    components,
+
+  const [customSelectionsTable, updateCustomSelections]
+    = customSelections({
+      components,
   });
   const highlighter = components.get(OBF.Highlighter);
 
   let newSelectionForm: HTMLDivElement;
   let groupNameInput: BUI.TextInput;
   let saveSelectionBtn: BUI.Button;
+
 
   const onFormCreated = (e?: Element) => {
     if (!e) return;
@@ -68,17 +71,41 @@ export default (components: OBC.Components) => {
     groupNameInput.value = "";
   };
 
+
   return BUI.Component.create<BUI.PanelSection>(() => {
     return BUI.html`
       <bim-panel-section label="Custom Selections" icon="clarity:blocks-group-solid">
-        <div ${BUI.ref(onFormCreated)} style="display: none; gap: 0.5rem">
-          <bim-text-input ${BUI.ref(onGroupNameInputCreated)} placeholder="Selection Name..." vertical></bim-text-input>
-          <bim-button @click=${onSaveGroupSelection} icon="mingcute:check-fill" style="flex: 0" label="Accept"></bim-button>
-          <bim-button @click=${onCancelGroupCreation} icon="mingcute:close-fill" style="flex: 0" label="Cancel"></bim-button>
+        <div
+          ${BUI.ref(onFormCreated)}
+          style="display: none; gap: 0.5rem"
+        >
+          <bim-text-input
+            ${BUI.ref(onGroupNameInputCreated)}
+            placeholder="Selection Name..."
+            vertical
+          ></bim-text-input>
+          <bim-button
+            @click=${onSaveGroupSelection}
+            icon="mingcute:check-fill"
+            style="flex: 0"
+            label="Accept"
+          ></bim-button>
+          <bim-button
+            @click=${onCancelGroupCreation}
+            icon="mingcute:close-fill"
+            style="flex: 0"
+            label="Cancel"
+          ></bim-button>
         </div>
         ${customSelectionsTable}
-        <bim-button style="display: none;" ${BUI.ref(onSaveSelectionCreated)} @click=${onNewSelection} label="Save Selection"></bim-button>
+        <bim-button
+          style="display: none;"
+          ${BUI.ref(onSaveSelectionCreated)}
+          @click=${onNewSelection}
+          label="Save Selection"
+        ></bim-button>
       </bim-panel-section>
     `;
   });
+  
 };

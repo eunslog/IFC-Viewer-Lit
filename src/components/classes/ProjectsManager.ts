@@ -14,13 +14,12 @@ export class ProjectsManager {
   list: IfcBasicInfo[] = [];
   modelUUIDMap: Map<number, string> = new Map();
 
-  constructor() {
-  }
+  constructor() {}
 
   async loadIFCFiles() {
     try {
       // Load ifc files list
-      const ifcResponse = await fetch('http://localhost:3000/api/ifcs/name');
+      const ifcResponse = await fetch('/api/ifcs/name');
       if (!ifcResponse.ok) {
         throw new Error("Failed to fetch ifcs");
       }
@@ -32,7 +31,6 @@ export class ProjectsManager {
         };
         this.newProject(ifcInfo);
       }
-      
     } catch (err) {
       console.error("Error loading projects from API:", err);
     }
@@ -40,7 +38,7 @@ export class ProjectsManager {
 
   async loadIFC(ifcId: number) {
     try{
-      const ifcResponse = await fetch(`http://localhost:3000/api/ifc/${ifcId}`);
+      const ifcResponse = await fetch(`/api/ifc/${ifcId}`);
       if (!ifcResponse.ok) {
         console.warn(`Not found IFC data for ifc ID ${ifcId}`);
         return null;
@@ -54,25 +52,23 @@ export class ProjectsManager {
       }
 
       if (typeof ifcRow.content === 'string') {
-      const decodedContent = atob(ifcRow.content);
-      const ifc_data = new Uint8Array(decodedContent.length);
-      for (let i = 0; i < decodedContent.length; i++) {
-        ifc_data[i] = decodedContent.charCodeAt(i);
+        const decodedContent = atob(ifcRow.content);
+        const ifc_data = new Uint8Array(decodedContent.length);
+        for (let i = 0; i < decodedContent.length; i++) {
+          ifc_data[i] = decodedContent.charCodeAt(i);
+        }
+        
+        return {
+          name: ifcRow.name,
+          content: ifc_data, 
+        };
       }
-      
-      return {
-        name: ifcRow.name,
-        content: ifc_data, 
-      };
-    }
     }
     catch (error) {
       console.error("Error loading IFC data:", error);
       return null;
     }
   }
-
-
 
   addModelUUID(ifcId: number, modelUUID: string) {
     this.modelUUIDMap.set(ifcId, modelUUID);
@@ -97,50 +93,48 @@ export class ProjectsManager {
 
   filterProjects(value: string) {
     const filteredProjects = this.list.filter((project) => {
-      return project.name.toLowerCase().includes(value.toLocaleLowerCase())
+      return project.name.toLowerCase().includes(value.toLocaleLowerCase());
     })
-    return filteredProjects
+    return filteredProjects;
   }
 
   newProject(data: IfcBasicInfo) {
     this.list.push(data);
-    return data
+    return data;
   }
 
-  
   exportToJSON(fileName: string = "projects") {
-    const json = JSON.stringify(this.list, null, 2)
-    const blob = new Blob([json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = fileName
-    a.click()
-    URL.revokeObjectURL(url)
+    const json = JSON.stringify(this.list, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
   }
   
   importFromJSON() {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'application/json'
-    const reader = new FileReader()
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    const reader = new FileReader();
     reader.addEventListener("load", () => {
-      const json = reader.result
-      if (!json) { return }
-      const projects: IfcRow[] = JSON.parse(json as string)
+      const json = reader.result;
+      if (!json) { return; }
+      const projects: IfcRow[] = JSON.parse(json as string);
       for (const project of projects) {
         try {
-          this.newProject(project)
+          this.newProject(project);
         } catch (error) {
-          
         }
       }
     })
     input.addEventListener('change', () => {
-      const filesList = input.files
-      if (!filesList) { return }
-      reader.readAsText(filesList[0])
+      const filesList = input.files;
+      if (!filesList) { return; }
+      reader.readAsText(filesList[0]);
     })
-    input.click()
+    input.click();
   }
 }
